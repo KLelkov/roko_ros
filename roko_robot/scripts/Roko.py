@@ -36,6 +36,10 @@ class Roko:
     # Robot PID control variables
     _velocity_error = 0
     _rate_error = 0
+    _left_error = 0
+    _right_error = 0
+    _desired_rate_left = 0
+    _desired_rate_right = 0
 
     # System variables
     _dt = 0.01
@@ -60,8 +64,11 @@ class Roko:
 
 
     def update(self): #-> 'do things'
+        # Generate torque on the wheels
+        self.generate_control()
+
         # Rotation motion equation
-        angular_acceleration = (self._Mr - self._Ml) * self._lw / self._rw \
+        angular_acceleration = (self._Ml - self._Mr) * self._lw / self._rw \
         / (2*self._Jd + self._Jz + 2*self._lw**2*self._Jw/self._rw**2 \
         + 2*self._mw*self._lw**2)
 
@@ -140,28 +147,33 @@ class Roko:
 
         self._Ml = (velocity_control - rate_control) / 2
         self._Mr = (velocity_control + rate_control) / 2
+        #print("PID in: {} {}".format(velocity_error, rate_error))
+        #print("Moments: {} {}".format(self._Ml, self._Mr))
 
 
     def set_odo(self, left, right):
-        '''Set desired linear velocity and angular rate for the robot
-        to obtain necessary control values for the wheel motors.
-        Keep in mind, that control functions also use measured parameters.
-        With errors!!!'''
-        velocity = (left + right) * self._rw / 2.0
-        angular_rate = (left - right) * self._rw / 2.0 / self._lw
-        params = self.get_measurements()
-        # Velocity PD controller
-        velocity_error = velocity - params[0]
-        velocity_control = 6 * velocity_error + 0.3 * (velocity_error - self._velocity_error)
-        self._velocity_error = velocity_error
-        # Angular rate PD controller
-        rate_error = angular_rate - params[1]
-        rate_control = 2.8 * rate_error + 0.1 * (rate_error - self._rate_error)
-        self._rate_error = rate_error
-        print("Vel: {} Rate: {}".format(velocity, angular_rate))
+        self._desired_rate_left = left
+        self._desired_rate_right = right
 
-        self._Ml = (velocity_control - rate_control) / 2
-        self._Mr = (velocity_control + rate_control) / 2
+
+    def generate_control(self):
+        odo = self.get_odometry()
+        left_error = self._desired_rate_left - odo[0]
+        left_control = 0.3 * left_error - 0.04 * (left_error - self._left_error)
+        self._left_error = left_error
+        self._Ml = left_control
+
+        right_error = self._desired_rate_right - odo[1]
+        right_control = 0.3 * right_error - 0.04 * (right_error - self._right_error)
+        self._right_error = right_error
+        self._Mr = right_control
+        #print("Odo: {} {}".format(odo[0], odo[1]))
+        #print("Moments: {} {}".format(self._Ml, self._Mr))
+
+        if abs(self._Ml) > 2:
+            self._Ml = math.copysign(2, self._Ml)
+        if abs(self._Mr) > 2:
+            self._Mr = math.copysign(2, self._Mr)
 
 
     def get_odometry(self):
@@ -282,7 +294,7 @@ class Roko:
         gyro_noise = 2.5 * math.pi/180 # rad/s
         gnss_shift = 2 # m
         gnss_noise = 0.2 # m
-        odo_scale = 0.08 # percent
+        odo_scale = 0.06 # percent
         odo_noise = 0.03 # m/s
 
         # Long-period errors of position measurement
@@ -298,8 +310,8 @@ class Roko:
         #x = self._x + position_shift_x + gnss_noise * (random.random() - 0.5)
         #y = self._y + position_shift_y + gnss_noise * (random.random() - 0.5)
         #heading = self._heading + heading_shift + gyro_noise * (random.random() - 0.5)
-        velocity = (self._velocity + odo_noise * (random.random() - 0.5)) * (1 + 2 * odo_scale * (random.random() - 0.5))
-        angular_rate = (self._angular_rate + 0.15 * gyro_noise * (random.random() - 0.5)) * (1 + 2 * odo_scale * (random.random() - 0.5))
+        velocity = (self._velocity + odo_noise * (random.random() - 0.5)) * (1 + odo_scale * (random.random() - 0.5))
+        angular_rate = (self._angular_rate + 0.15 * gyro_noise * (random.random() - 0.5)) * (1 + odo_scale * (random.random() - 0.5))
 
         return [velocity, angular_rate]
 

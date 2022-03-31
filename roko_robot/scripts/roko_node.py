@@ -17,13 +17,15 @@ class SubscribeAndPublish:
         # Set initial values
         self._robot = Roko.Roko(0, 0, 0, 0, 0)
 
-        # Create publisher for publishing sensor measurements
-        self._sensorPub = rospy.Publisher('sensors_data', sensors, queue_size=10)
-        # Create publisher for publishing true robot motion parameters
-        #self._truePub = rospy.Publisher('true_parameters', String, queue_size=10)
-        self._controlSub = rospy.Subscriber('control_data', control, self.control_callback)
+        self._path = Path()
 
+        # Create publisher for publishing sensor measurements
+        self._sensorPub = rospy.Publisher('roko/sensors_data', sensors, queue_size=10)
+        self._controlSub = rospy.Subscriber('roko/control_data', control, self.control_callback)
+
+        # Create publisher for publishing true robot motion parameters
         self._posePub = rospy.Publisher('rviz/pose', PoseStamped, queue_size=10)
+        self._pathPub = rospy.Publisher('rviz/path', Path, queue_size=10)
 
 
     # Used to limit angle within [-pi, pi] limits
@@ -41,6 +43,11 @@ class SubscribeAndPublish:
         left = msg.left
         right = msg.right
         print("Command received!")
+        velocity = (left + right) * self._robot._rw / 2.0
+        angular_rate = (left - right) * self._robot._rw / 2.0 / self._robot._lw
+        print("Expected velocity: {:.1f}".format(velocity))
+        print("Expected angular rate: {:.1f}".format(angular_rate))
+        print("")
 
         # Pass these values to the robot
         self._robot.set_odo(left, right)
@@ -108,6 +115,11 @@ class SubscribeAndPublish:
         #path.poses.append(pose)
         self._posePub.publish(pose)
 
+        # Path
+        self._path.header = pose.header
+        self._path.poses.append(pose)
+        self._pathPub.publish(self._path)
+
 
     # NOTE: variables with underscore (_[var]) are considered protected class variables
     # and should not be changed anywhere outside of this class.
@@ -120,10 +132,11 @@ class SubscribeAndPublish:
     _navCount = 0
 
     # ROS communication handlers
-    _truePub = 0
     _sensorPub = 0
     _controlSub = 0
     _posePub = 0
+    _pathPub = 0
+    _path = 0
 
 # End of SubscribeAndPublish class
 
@@ -144,7 +157,6 @@ def main():
             SAP.publishPose()
         if counter % 100 == 0:
             SAP.publishGPS()
-
         r.sleep()
 # End on main()
 
