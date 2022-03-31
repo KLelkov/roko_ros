@@ -6,6 +6,9 @@ import numpy as np
 import Roko
 from std_msgs.msg import String
 from roko_robot.msg import sensors
+from roko_robot.msg import control
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped
 
 
 class SubscribeAndPublish:
@@ -17,8 +20,10 @@ class SubscribeAndPublish:
         # Create publisher for publishing sensor measurements
         self._sensorPub = rospy.Publisher('sensors_data', sensors, queue_size=10)
         # Create publisher for publishing true robot motion parameters
-        self._truePub = rospy.Publisher('true_parameters', String, queue_size=10)
-        self._controlSub = rospy.Subscriber('control_data', String, self.control_callback)
+        #self._truePub = rospy.Publisher('true_parameters', String, queue_size=10)
+        self._controlSub = rospy.Subscriber('control_data', control, self.control_callback)
+
+        self._posePub = rospy.Publisher('rviz/pose', PoseStamped, queue_size=10)
 
 
     # Used to limit angle within [-pi, pi] limits
@@ -33,11 +38,12 @@ class SubscribeAndPublish:
 
     def control_callback(self, msg):
         # Extract control values from the message
-        left = msg.odo[0]
-        right = msg.odo[1]
+        left = msg.left
+        right = msg.right
+        print("Command received!")
 
         # Pass these values to the robot
-        self._robot.set_motion(left, right)
+        self._robot.set_odo(left, right)
 
 
     def publishOdometry(self):
@@ -73,17 +79,34 @@ class SubscribeAndPublish:
         msg = sensors()
         msg.timestamp = int(rospy.get_time() * 1000)
         # Keep in mind that GPS readings are in GEO frame
-        msg.gps1_pos[0] = gps_readings[0] # X position
-        msg.gps1_pos[1] = gps_readings[1] # Y position
+        msg.gps1_pos[0] = gps_readings[0] # Latitude
+        msg.gps1_pos[1] = gps_readings[1] # Longitude
         msg.gps1_vel[0] = gps_readings[2] # velocity on X (north)
         msg.gps1_vel[1] = gps_readings[3] # velocity on Y (east)
 
-        msg.gps2_pos[0] = gps_readings[4] # X position
-        msg.gps2_pos[1] = gps_readings[5] # Y position
+        msg.gps2_pos[0] = gps_readings[4] # Latitude
+        msg.gps2_pos[1] = gps_readings[5] # Longitude
         msg.gps2_vel[0] = gps_readings[6] # velocity on X (north)
         msg.gps2_vel[1] = gps_readings[7] # velocity on Y (east)
 
         self._sensorPub.publish(msg)
+
+
+    def publishPose(self):
+        (rpos, quat) = self._robot.get_navigation()
+        #path = Path()
+        pose = PoseStamped()
+        pose.header.frame_id = 'map'
+        pose.header.seq = self._navCount
+        pose.header.stamp = rospy.Time.now()
+        #pose = PoseStamped()
+        #pose.header = data.header
+        pose.pose.position.x = rpos[0]
+        pose.pose.position.y = rpos[1]
+        pose.pose.orientation.z = quat[2]
+        pose.pose.orientation.w = quat[3]
+        #path.poses.append(pose)
+        self._posePub.publish(pose)
 
 
     # NOTE: variables with underscore (_[var]) are considered protected class variables
@@ -93,10 +116,14 @@ class SubscribeAndPublish:
     # (X, Y, Psi, Velocity, Angular_rate)
     _robot = Roko.Roko(0, 0, 0, 0, 0)
 
+    # Message counter
+    _navCount = 0
+
     # ROS communication handlers
     _truePub = 0
     _sensorPub = 0
     _controlSub = 0
+    _posePub = 0
 
 # End of SubscribeAndPublish class
 
@@ -114,6 +141,7 @@ def main():
         SAP.publishIMU()
         if counter % 10 == 0:
             SAP.publishOdometry()
+            SAP.publishPose()
         if counter % 100 == 0:
             SAP.publishGPS()
 

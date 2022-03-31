@@ -47,6 +47,8 @@ class Roko:
     _gps2_last_pos = [0, 0]
     _gps2_seed = 0.0
     _gps1_seed = 0.0
+    _Lat0 = 55.811165
+    _Lon0 = 37.501109
 
     # Arrays to store motion parameters at every simulation step
     _X = []
@@ -140,6 +142,28 @@ class Roko:
         self._Mr = (velocity_control + rate_control) / 2
 
 
+    def set_odo(self, left, right):
+        '''Set desired linear velocity and angular rate for the robot
+        to obtain necessary control values for the wheel motors.
+        Keep in mind, that control functions also use measured parameters.
+        With errors!!!'''
+        velocity = (left + right) * self._rw / 2.0
+        angular_rate = (left - right) * self._rw / 2.0 / self._lw
+        params = self.get_measurements()
+        # Velocity PD controller
+        velocity_error = velocity - params[0]
+        velocity_control = 6 * velocity_error + 0.3 * (velocity_error - self._velocity_error)
+        self._velocity_error = velocity_error
+        # Angular rate PD controller
+        rate_error = angular_rate - params[1]
+        rate_control = 2.8 * rate_error + 0.1 * (rate_error - self._rate_error)
+        self._rate_error = rate_error
+        print("Vel: {} Rate: {}".format(velocity, angular_rate))
+
+        self._Ml = (velocity_control - rate_control) / 2
+        self._Mr = (velocity_control + rate_control) / 2
+
+
     def get_odometry(self):
         readings = [0, 0]
         # Left wheel
@@ -199,17 +223,17 @@ class Roko:
         readings[1] += self._gps1_seed + self._gps1_con * math.cos(self._heading) + random.gauss(0, pos_noise)
 
         # North velocity measurement
-        readings[2] = (readings[0] - self._gps1_last_pos[0]) / self._dt
+        readings[2] = (readings[0] - self._gps1_last_pos[0]) / 1.0  # gps measurement frequency 1 Hz
         # East velocity measurement
-        readings[3] = (readings[1] - self._gps1_last_pos[1]) / self._dt
+        readings[3] = (readings[1] - self._gps1_last_pos[1]) / 1.0
 
         # Store current position measurements
         self._gps1_last_pos = readings[0:2]
 
 
         # The second GPS receiver is located jat the back of the Robot
-        # The displacement along Xb axis is -0.4 m
-        lx = -0.4
+        # The displacement along Xb axis is -0.6 m
+        lx = -0.6
         readings[4] = self._x + lx * math.cos(self._heading)
         readings[5] = self._y + lx * math.sin(self._heading)
         #readings[6] = (self._velocity + self._angular_rate * lx) * cos(self._heading)
@@ -228,12 +252,23 @@ class Roko:
         readings[5] += self._gps2_seed + self._gps2_con * math.cos(self._heading) + random.gauss(0, pos_noise)
 
         # North velocity measurement
-        readings[6] = (readings[4] - self._gps2_last_pos[0]) / self._dt
+        readings[6] = (readings[4] - self._gps2_last_pos[0]) / 1.0  # gps measurement frequency 1 Hz
         # East velocity measurement
-        readings[7] = (readings[5] - self._gps2_last_pos[1]) / self._dt
+        readings[7] = (readings[5] - self._gps2_last_pos[1]) / 1.0
 
         # Store current position measurements
         self._gps2_last_pos = readings[4:6]
+
+        # Convert meters to geo degrees
+        readings[0] /= 111111
+        readings[0] += self._Lat0
+        readings[1] /= (111111 * math.cos(self._Lat0 * math.pi / 180.0))
+        readings[1] += self._Lon0
+
+        readings[4] /= 111111
+        readings[4] += self._Lat0
+        readings[5] /= (111111 * math.cos(self._Lat0 * math.pi / 180.0))
+        readings[5] += self._Lon0
 
         return readings
 
@@ -267,6 +302,15 @@ class Roko:
         angular_rate = (self._angular_rate + 0.15 * gyro_noise * (random.random() - 0.5)) * (1 + 2 * odo_scale * (random.random() - 0.5))
 
         return [velocity, angular_rate]
+
+
+    def get_navigation(self):
+        position = [self._x, self._y]
+        quat = [0, 0, 0, 0]
+        quat[2] = math.sin(self._heading / 2.0)  # z
+        quat[3] = math.cos(self._heading / 2.0)  # w
+
+        return (position, quat)
 
 
     def plot_results(self):
