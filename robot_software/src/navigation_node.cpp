@@ -19,13 +19,13 @@ public:
       nav_path = nav_msgs::Path();
 
       sensorSub = n_.subscribe("roko/sensors_data", 10, &SubscribeAndPublish::sensor_callback, this);
-      displayPub1 = n_.advertise<nav_msgs::Path>("rviz/pose", 10);
-      displayPub2 = n_.advertise<geometry_msgs::PoseStamped>("rviz/path", 10);
+      displayPub1 = n_.advertise<nav_msgs::Path>("rviz/path_nav", 10);
+      displayPub2 = n_.advertise<geometry_msgs::PoseStamped>("rviz/pose_nav", 10);
     }
 
 
     // This callback function continuously executes and reads the image data
-    void sensor_callback(const roko_msgs::sensors msg)
+    void sensor_callback(const roko_robot::sensors msg)
     {
       // Decode the incoming sensor measurements
       float left_wh_rot_speed = msg.odom[0];
@@ -46,8 +46,8 @@ public:
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
 
       // TODO: calculate robot coordinates based on odometry control_data
-      float X = counter * 0.1;
-      float Y = counter * 0.2;
+      float X = counter * 0.001;
+      float Y = counter * 0.002;
 
 
       counter++;
@@ -63,10 +63,11 @@ public:
         msg.header.stamp = ros::Time::now();
         msg.pose.position.x = x;
         msg.pose.position.y = y;
-        displayPub1.publish(msg);
+        displayPub2.publish(msg);
 
         nav_path.header = msg.header;
-        nav_path.poses
+        nav_path.poses.push_back(msg);
+        displayPub1.publish(nav_path);
     }
 
 

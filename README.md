@@ -29,14 +29,15 @@ one more time. If you have any futher errors - please sumbit an issue to this re
 ## Launching all at once
 You can easily launch the whole package with a single command
 ```
-roslaunch robot_software control.launch
+roslaunch robot_software navigation.launch
 ```
-This will launch robot simulation node **roko_node** and control algorithm **control_node** as well as predefined Rviz window for visualization.
+This will launch robot simulation node **roko_node**, control algorithm **control_node** and
+**navigation_node** as well as predefined Rviz window for visualization.
 
 ## Running the nodes one by one for easier debug
 First thing you need to do - is to launch ROSCORE
 ```
-rocore
+roscore
 ```
 Open the second terminal window and launch **roko_node** to start simulating robot behaviour:
 ```
@@ -45,6 +46,10 @@ rosrun roko_robot roko_node.py
 In the third terminal window you can run the **control_node**:
 ```
 rosrun robot_software control_node
+```
+In the fourth terminal run the **navigation_node**:
+```
+rosrun robot_software navigation_node
 ```
 You can check the sensors data by monitoring the topic:
 ```
