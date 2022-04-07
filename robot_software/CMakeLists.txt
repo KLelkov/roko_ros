@@ -145,6 +145,9 @@ include_directories(
 add_executable(control_node src/control_node.cpp)
 target_link_libraries(control_node ${catkin_LIBRARIES})
 
+add_executable(navigation_node src/navigation_node.cpp)
+target_link_libraries(navigation_node ${catkin_LIBRARIES})
+
 #############
 ## Install ##
 #############
