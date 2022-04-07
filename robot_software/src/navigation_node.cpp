@@ -9,7 +9,6 @@
 #include <geometry_msgs/PoseStamped.h>
 
 
-
 class SubscribeAndPublish
 {
 public:
@@ -23,8 +22,7 @@ public:
       displayPub2 = n_.advertise<geometry_msgs::PoseStamped>("rviz/pose_nav", 10);
     }
 
-
-    // This callback function continuously executes and reads the image data
+    // This callback function for sensor data
     void sensor_callback(const roko_robot::sensors msg)
     {
       // Decode the incoming sensor measurements
@@ -54,7 +52,6 @@ public:
       display_navigation_solution(X, Y);
     }
 
-
     void display_navigation_solution(float x, float y)
     {
         geometry_msgs::PoseStamped msg = geometry_msgs::PoseStamped();
@@ -69,8 +66,6 @@ public:
         nav_path.poses.push_back(msg);
         displayPub1.publish(nav_path);
     }
-
-
 
 private:
     // ROS services
