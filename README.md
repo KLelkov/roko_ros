@@ -43,9 +43,9 @@ Open the second terminal window and launch **roko_node** to start simulating rob
 ```
 rosrun roko_robot roko_node.py
 ```
-In the third terminal window you can run the **control_node**:
+In the third terminal window you can run the **py_control_node**:
 ```
-rosrun robot_software control_node
+rosrun robot_software py_control_node.py
 ```
 In the fourth terminal run the **navigation_node**:
 ```
