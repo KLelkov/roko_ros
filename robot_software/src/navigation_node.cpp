@@ -48,7 +48,11 @@ public:
       float gps2lon = msg.gps2_pos[1];  // deg
       float gps2vn = msg.gps2_vel[0];  // m/s (north)
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
-
+      if (left_wh_rot_speed==0 || right_wh_rot_speed==0)
+      {
+           left_wh_rot_speed=lwspd;
+           right_wh_rot_speed=rwspd; 
+      }
       // TODO: Stricly speaking you are ignoring sensor packets sorting routine.
       // You are assumung that if you receive a imu packet (for example),
       // calculated robot velocities would be equal to zero, so this would not
@@ -56,10 +60,11 @@ public:
       // And it is true, kinda. But as a program grows larger - you will experience
       // problems with this approach and finding this error (warning, really)
       // would be much harder...
-      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs, omega_gyro, b=0.5, time=0.1;//объявление переменных
+      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs, omega_gyro, Wz, b=0.5, time=0.1, k=0.6, lwspd=left_wh_rot_speed, rwspd=right_wh_rot_speed;//объявление переменных
       omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
       speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
-      omega=omega+omega_spd*time;//интегрирование методом прямоугольников и получение угла курса
+      Wz=k*omega_spd+(1-k)*gyroZ;//фильтр
+      omega=omega+Wz*time;//интегрирование методом прямоугольников и получение угла курса
       
       X1=cos(omega)*speed_abs*time;//
       Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
@@ -119,5 +124,5 @@ int main(int argc, char** argv)
     ros::spin();
 
 
-  	return 0;
+    return 0;
   }
