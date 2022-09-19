@@ -48,6 +48,7 @@ public:
       float gps2lon = msg.gps2_pos[1];  // deg
       float gps2vn = msg.gps2_vel[0];  // m/s (north)
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
+      float rwspd, lwspd;
       if (left_wh_rot_speed==0 || right_wh_rot_speed==0)
       {
            left_wh_rot_speed=lwspd;
@@ -60,7 +61,7 @@ public:
       // And it is true, kinda. But as a program grows larger - you will experience
       // problems with this approach and finding this error (warning, really)
       // would be much harder...
-      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs, omega_gyro, Wz, b=0.5, time=0.1, k=0.6, lwspd=left_wh_rot_speed, rwspd=right_wh_rot_speed;//объявление переменных
+      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs, omega_gyro, Wz, b=0.5, time=0.1, k=0.3;//объявление переменных
       omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
       speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
       Wz=k*omega_spd+(1-k)*gyroZ;//фильтр
