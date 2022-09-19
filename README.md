@@ -1,5 +1,5 @@
 # roko_ros
-## Project structure - test
+## Project structure
 This project contains two ros packages: **roko_robot** and **robot_software**.
 ### roko_robot
 This package imitates the real robot behavior (hardware simulation).

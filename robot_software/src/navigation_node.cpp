@@ -56,10 +56,11 @@ public:
       // And it is true, kinda. But as a program grows larger - you will experience
       // problems with this approach and finding this error (warning, really)
       // would be much harder...
-      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs, b=0.5, time=0.1;//объявление переменных
+      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs, omega_gyro, b=0.5, time=0.1;//объявление переменных
       omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
       speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
       omega=omega+omega_spd*time;//интегрирование методом прямоугольников и получение угла курса
+      
       X1=cos(omega)*speed_abs*time;//
       Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
       X=X+X1;//
