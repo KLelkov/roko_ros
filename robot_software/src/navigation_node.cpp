@@ -10,13 +10,21 @@
 #include <geometry_msgs/PoseStamped.h>
 
 
-// TODO: Consider removing global variables. Right now it is fairly simple to do -
-// just move them inside SubscribeAndPublish class as a private variables.
-float X=0, Y=0, omega=0;//объявление глобальных переменных для координат и угла курса
+
 
 
 class SubscribeAndPublish
 {
+    
+    // TODO: Consider removing global variables. Right now it is fairly simple to do -
+    // just move them inside SubscribeAndPublish class as a private variables.
+    float X=0;
+    float Y=0;
+    float omega=0;//объявление глобальных переменных для координат и угла курса
+    float lwspd = 0;
+    float rwspd = 0;
+    float legacy_gyro[] = {0, 0, 0};
+    
 public:
     SubscribeAndPublish() // This is the constructor
     {
@@ -54,6 +62,13 @@ public:
            left_wh_rot_speed=lwspd;
            right_wh_rot_speed=rwspd; 
       }
+      if (gyroZ != 0)
+      {
+      legacy_gyro[2] = legacy_gyro[1];
+      legacy_gyro[1] = legacy_gyro[0];
+      legacy_gyro[0] = gyroZ;
+      }
+        
       // TODO: Stricly speaking you are ignoring sensor packets sorting routine.
       // You are assumung that if you receive a imu packet (for example),
       // calculated robot velocities would be equal to zero, so this would not
