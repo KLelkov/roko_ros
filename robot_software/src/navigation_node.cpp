@@ -11,11 +11,10 @@
 
 
 
-
+float legacy_gyro[10] = {0};
 
 class SubscribeAndPublish
 {
-    
     // TODO: Consider removing global variables. Right now it is fairly simple to do -
     // just move them inside SubscribeAndPublish class as a private variables.
     float X=0;
@@ -23,7 +22,7 @@ class SubscribeAndPublish
     float omega=0;//объявление глобальных переменных для координат и угла курса
     float lwspd = 0;
     float rwspd = 0;
-    float legacy_gyro[] = {0, 0, 0};
+    
     
 public:
     SubscribeAndPublish() // This is the constructor
@@ -62,13 +61,27 @@ public:
            left_wh_rot_speed=lwspd;
            right_wh_rot_speed=rwspd; 
       }
-      if (gyroZ != 0)
+      /*if (gyroZ != 0)
       {
       legacy_gyro[2] = legacy_gyro[1];
       legacy_gyro[1] = legacy_gyro[0];
       legacy_gyro[0] = gyroZ;
-      }
-        
+      } */
+      float omega_gyro;
+      for (int i = 1; i < 10; ++i)
+      {
+          if (i<=9)
+          {
+              legacy_gyro[i]=legacy_gyro[i-1];
+              omega_gyro=omega_gyro+legacy_gyro[i];
+          }
+          else
+          {
+            legacy_gyro[i]=gyroZ;
+            omega_gyro=omega_gyro+legacy_gyro[i];
+          }
+          omega_gyro=omega_gyro/i;
+      }  
       // TODO: Stricly speaking you are ignoring sensor packets sorting routine.
       // You are assumung that if you receive a imu packet (for example),
       // calculated robot velocities would be equal to zero, so this would not
@@ -76,21 +89,19 @@ public:
       // And it is true, kinda. But as a program grows larger - you will experience
       // problems with this approach and finding this error (warning, really)
       // would be much harder...
-      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs, omega_gyro, Wz, b=0.5, time=0.1, k=0.3;//объявление переменных
+      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.1, k=0.98;//объявление переменных
       omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
       speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
-      Wz=k*omega_spd+(1-k)*gyroZ;//фильтр
-      omega=omega+Wz*time;//интегрирование методом прямоугольников и получение угла курса
+      Wz=k*omega_spd+(1-k)*omega_gyro;//фильтр
+      omega=omega+Wz*0.001;//интегрирование методом прямоугольников и получение угла курса
       
       X1=cos(omega)*speed_abs*time;//
       Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
-      X=X+X1;//
-      Y=Y+Y1;// рассчет пройденного пути
-      //counter++;
+      X=X+X1;//рассчет пройденного 
+      Y=Y+Y1;// пути
       display_navigation_solution(X, Y, omega);
       publish_navigation_solution(X, Y, omega);
     }
-
     void display_navigation_solution(float x, float y, float omega)
     {
         geometry_msgs::PoseStamped msg = geometry_msgs::PoseStamped();
