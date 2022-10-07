@@ -28,8 +28,45 @@ int main(int argc, char** argv)
 
     // For cycling operation use
     ros::Rate rate(1); // ROS Rate at 1 Hz
+    int i = 0;
+    bool isRotate = false;
+    bool isSpeedUp = false;
+    int nextRotate = 6;
+    int nextSpeedUp = 7;
   	while (ros::ok()) {
 		    // do stuff
+        if (isRotate)
+        {
+          if (isSpeedUp)
+          {
+            msg.left = 4.0;
+            msg.right = 4.0;
+          }
+          else
+          {
+            msg.left = 4.0 * sqrt(2);
+            msg.right = 4.0 * sqrt(2);
+          }
+          isSpeedUp = false;
+          isRotate = false;
+        }
+
+        if (i == nextRotate)
+        {
+          msg.right = -4.0;
+          msg.left = 4.0;
+          isRotate = true;
+          nextRotate = nextRotate + 6;
+        }
+
+        if (i == nextSpeedUp)
+        {
+          isSpeedUp = true;
+          nextSpeedUp = nextSpeedUp + 14;
+        }
+
+        i++;
+
         controlPub.publish(msg);
         rate.sleep();
     }

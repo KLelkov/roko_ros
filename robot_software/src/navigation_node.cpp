@@ -11,19 +11,18 @@
 
 
 
-float legacy_gyro[10] = {0};
+
 
 class SubscribeAndPublish
 {
-    // TODO: Consider removing global variables. Right now it is fairly simple to do -
-    // just move them inside SubscribeAndPublish class as a private variables.
-    float X=0;
-    float Y=0;
-    float omega=0;//объявление глобальных переменных для координат и угла курса
+    float X = 0;
+    float Y = 0;
+    float omega = 0; //объявление глобальных переменных для координат и угла курса
     float lwspd = 0;
     float rwspd = 0;
-    
-    
+
+    float legacy_gyro[10] = {0}; // last ten values of gyro measurements
+
 public:
     SubscribeAndPublish() // This is the constructor
     {
@@ -56,10 +55,11 @@ public:
       float gps2vn = msg.gps2_vel[0];  // m/s (north)
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
       float rwspd, lwspd;
-      if (left_wh_rot_speed==0 || right_wh_rot_speed==0)
+      // If the sensor data doesn't contain odometry values - use the last ones
+      if (left_wh_rot_speed == 0 || right_wh_rot_speed == 0)
       {
-           left_wh_rot_speed=lwspd;
-           right_wh_rot_speed=rwspd; 
+           left_wh_rot_speed = lwspd;
+           right_wh_rot_speed = rwspd;
       }
       /*if (gyroZ != 0)
       {
@@ -67,21 +67,21 @@ public:
       legacy_gyro[1] = legacy_gyro[0];
       legacy_gyro[0] = gyroZ;
       } */
-      float omega_gyro;
+      float omega_gyro; // NOTE: Not initialized - bad practice. Set it to zero.
       for (int i = 1; i < 10; ++i)
       {
-          if (i<=9)
+          if (i <= 9) // NOTE: Always true
           {
-              legacy_gyro[i]=legacy_gyro[i-1];
-              omega_gyro=omega_gyro+legacy_gyro[i];
+              legacy_gyro[i] = legacy_gyro[i-1];
+              omega_gyro = omega_gyro + legacy_gyro[i];
           }
-          else
+          else // NOTE: Never happens
           {
-            legacy_gyro[i]=gyroZ;
-            omega_gyro=omega_gyro+legacy_gyro[i];
+            legacy_gyro[i] = gyroZ;
+            omega_gyro = omega_gyro + legacy_gyro[i];
           }
-          omega_gyro=omega_gyro/i;
-      }  
+          omega_gyro = omega_gyro / i;
+      }
       // TODO: Stricly speaking you are ignoring sensor packets sorting routine.
       // You are assumung that if you receive a imu packet (for example),
       // calculated robot velocities would be equal to zero, so this would not
@@ -94,10 +94,11 @@ public:
       speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
       Wz=k*omega_spd+(1-k)*omega_gyro;//фильтр
       omega=omega+Wz*0.001;//интегрирование методом прямоугольников и получение угла курса
-      
+      printf("omega_gyro %5.2f\n", omega_gyro);
+
       X1=cos(omega)*speed_abs*time;//
       Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
-      X=X+X1;//рассчет пройденного 
+      X=X+X1;//рассчет пройденного
       Y=Y+Y1;// пути
       display_navigation_solution(X, Y, omega);
       publish_navigation_solution(X, Y, omega);
