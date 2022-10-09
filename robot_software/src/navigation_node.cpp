@@ -20,8 +20,7 @@ class SubscribeAndPublish
     float omega = 0; //объявление глобальных переменных для координат и угла курса
     float lwspd = 0;
     float rwspd = 0;
-
-    float legacy_gyro[10] = {0}; // last ten values of gyro measurements
+    float legacy_gyro[3] = {0}; // last 3 values of gyro measurements
 
 public:
     SubscribeAndPublish() // This is the constructor
@@ -54,33 +53,24 @@ public:
       float gps2lon = msg.gps2_pos[1];  // deg
       float gps2vn = msg.gps2_vel[0];  // m/s (north)
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
-      float rwspd, lwspd;
-      // If the sensor data doesn't contain odometry values - use the last ones
-      if (left_wh_rot_speed == 0 || right_wh_rot_speed == 0)
+      
+      
+
+      float omega_gyro=0, omega_gyro_s=0; 
+      for (int i = 0; i < 3; ++i)
       {
-           left_wh_rot_speed = lwspd;
-           right_wh_rot_speed = rwspd;
-      }
-      /*if (gyroZ != 0)
-      {
-      legacy_gyro[2] = legacy_gyro[1];
-      legacy_gyro[1] = legacy_gyro[0];
-      legacy_gyro[0] = gyroZ;
-      } */
-      float omega_gyro; // NOTE: Not initialized - bad practice. Set it to zero.
-      for (int i = 1; i < 10; ++i)
-      {
-          if (i <= 9) // NOTE: Always true
+          if (i != 2)
           {
-              legacy_gyro[i] = legacy_gyro[i-1];
-              omega_gyro = omega_gyro + legacy_gyro[i];
+              legacy_gyro[i] = legacy_gyro[i+1];
+              omega_gyro_s = omega_gyro_s + legacy_gyro[i];
           }
-          else // NOTE: Never happens
+          else
           {
             legacy_gyro[i] = gyroZ;
-            omega_gyro = omega_gyro + legacy_gyro[i];
+            omega_gyro_s = omega_gyro_s + legacy_gyro[i];
+            omega_gyro = omega_gyro_s / i;
           }
-          omega_gyro = omega_gyro / i;
+          
       }
       // TODO: Stricly speaking you are ignoring sensor packets sorting routine.
       // You are assumung that if you receive a imu packet (for example),
@@ -89,13 +79,17 @@ public:
       // And it is true, kinda. But as a program grows larger - you will experience
       // problems with this approach and finding this error (warning, really)
       // would be much harder...
-      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.1, k=0.98;//объявление переменных
-      omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
-      speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
-      Wz=k*omega_spd+(1-k)*omega_gyro;//фильтр
-      omega=omega+Wz*0.001;//интегрирование методом прямоугольников и получение угла курса
-      printf("omega_gyro %5.2f\n", omega_gyro);
 
+      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.1, k=0.98;//объявление переменных
+      speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
+      if (left_wh_rot_speed == 0 && right_wh_rot_speed == 0)// If the sensor data doesn't contain odometry values - use the last ones
+      {
+           left_wh_rot_speed = lwspd;
+           right_wh_rot_speed = rwspd;
+      }
+      omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
+      Wz=k*omega_spd*time+(1-k)*omega_gyro*0.01;//фильтр
+      omega=omega+Wz;//интегрирование методом прямоугольников и получение угла курса
       X1=cos(omega)*speed_abs*time;//
       Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
       X=X+X1;//рассчет пройденного
