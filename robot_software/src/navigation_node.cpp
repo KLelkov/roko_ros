@@ -53,11 +53,16 @@ public:
       float gps2lon = msg.gps2_pos[1];  // deg
       float gps2vn = msg.gps2_vel[0];  // m/s (north)
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
-      
-      
 
-      float omega_gyro=0, omega_gyro_s=0; 
-      for (int i = 0; i < 3; ++i)
+
+      // TODO: Gyroscope measurements actually might contain a permanent bias value.
+      // You should calculate it while the robot is moving forward and average first, lets say, 20 measurements
+      // Then you want to substract it from all further measurements.
+      float omega_gyro=0, omega_gyro_s=0;
+      for (int i = 0; i < 3; ++i) // NOTE: Consider incresing the number of filtering points
+                                  // More points will introduce the time lag to the system,
+                                  // but if your robot is already biased to the right, that might not be
+                                  // such a bad thing
       {
           if (i != 2)
           {
@@ -68,17 +73,11 @@ public:
           {
             legacy_gyro[i] = gyroZ;
             omega_gyro_s = omega_gyro_s + legacy_gyro[i];
-            omega_gyro = omega_gyro_s / i;
+            omega_gyro = omega_gyro_s / i; // NOTE: So we divide a sum of 3 elements by i=2
+                                           // This leads to the huge bias to the right
           }
-          
+
       }
-      // TODO: Stricly speaking you are ignoring sensor packets sorting routine.
-      // You are assumung that if you receive a imu packet (for example),
-      // calculated robot velocities would be equal to zero, so this would not
-      // mess up your solution.
-      // And it is true, kinda. But as a program grows larger - you will experience
-      // problems with this approach and finding this error (warning, really)
-      // would be much harder...
 
       float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.1, k=0.98;//объявление переменных
       speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
@@ -86,6 +85,8 @@ public:
       {
            left_wh_rot_speed = lwspd;
            right_wh_rot_speed = rwspd;
+           // NOTE: At this point speed_abs = 0, and you still use it to calculate X and Y
+           // This means that nine times out of ten the robot thinks, that it is rotating in place (without moving forward)
       }
       omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
       Wz=k*omega_spd*time+(1-k)*omega_gyro*0.01;//фильтр
