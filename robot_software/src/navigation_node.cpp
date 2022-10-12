@@ -20,7 +20,7 @@ class SubscribeAndPublish
     float omega = 0; //объявление глобальных переменных для координат и угла курса
     float lwspd = 0;
     float rwspd = 0;
-    float legacy_gyro[3] = {0}; // last 3 values of gyro measurements
+    float legacy_gyro[5] = {0}; // last 3 values of gyro measurements
 
 public:
     SubscribeAndPublish() // This is the constructor
@@ -59,38 +59,44 @@ public:
       // You should calculate it while the robot is moving forward and average first, lets say, 20 measurements
       // Then you want to substract it from all further measurements.
       float omega_gyro=0, omega_gyro_s=0;
-      for (int i = 0; i < 3; ++i) // NOTE: Consider incresing the number of filtering points
-                                  // More points will introduce the time lag to the system,
-                                  // but if your robot is already biased to the right, that might not be
-                                  // such a bad thing
+      for (int i = 0; i < 5; ++i) /* NOTE: 
+      Consider incresing the number of filtering points More points will introduce the time lag to the system, 
+      but if your robot is already biased to the right, that might not be such a bad thing
+      */
       {
-          if (i != 2)
-          {
-              legacy_gyro[i] = legacy_gyro[i+1];
-              omega_gyro_s = omega_gyro_s + legacy_gyro[i];
-          }
-          else
-          {
-            legacy_gyro[i] = gyroZ;
+        if (i != 4)
+        {
+            legacy_gyro[i] = legacy_gyro[i+1];
             omega_gyro_s = omega_gyro_s + legacy_gyro[i];
-            omega_gyro = omega_gyro_s / i; // NOTE: So we divide a sum of 3 elements by i=2
-                                           // This leads to the huge bias to the right
+        }
+        else
+        {
+          legacy_gyro[i] = gyroZ;
+          omega_gyro_s = omega_gyro_s + legacy_gyro[i];
+          omega_gyro = omega_gyro_s /(i+1); //сейчас делим сумму на i+1 (4+1=5)
+        }
+    
+
+      }
+
+      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.01, k=0.9;//объявление переменных
+      
+      if ((left_wh_rot_speed == 0) && (right_wh_rot_speed == 0))// If the sensor data doesn't contain odometry values - use the last ones
+          {
+               left_wh_rot_speed = lwspd;
+               right_wh_rot_speed = rwspd;
+               // NOTE: At this point speed_abs = 0, and you still use it to calculate X and Y
+               // This means that nine times out of ten the robot thinks, that it is rotating in place (without moving forward)
           }
-
-      }
-
-      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.1, k=0.98;//объявление переменных
-      speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
-      if (left_wh_rot_speed == 0 && right_wh_rot_speed == 0)// If the sensor data doesn't contain odometry values - use the last ones
-      {
-           left_wh_rot_speed = lwspd;
-           right_wh_rot_speed = rwspd;
-           // NOTE: At this point speed_abs = 0, and you still use it to calculate X and Y
-           // This means that nine times out of ten the robot thinks, that it is rotating in place (without moving forward)
-      }
+          else  
+          {
+                lwspd=left_wh_rot_speed;
+                rwspd=right_wh_rot_speed;
+          }   
       omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
-      Wz=k*omega_spd*time+(1-k)*omega_gyro*0.01;//фильтр
-      omega=omega+Wz;//интегрирование методом прямоугольников и получение угла курса
+      Wz=(k*omega_spd*0.01)+((1-k)*omega_gyro*0.01);//фильтр
+      omega=Wz+omega;//интегрирование методом прямоугольников и получение угла курса
+      speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
       X1=cos(omega)*speed_abs*time;//
       Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
       X=X+X1;//рассчет пройденного
