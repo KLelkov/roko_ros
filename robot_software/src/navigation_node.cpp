@@ -21,6 +21,8 @@ class SubscribeAndPublish
     float lwspd = 0;
     float rwspd = 0;
     float legacy_gyro[5] = {0}; // last 3 values of gyro measurements
+    int j=0;
+    float gyro_ZS=0;
 
 public:
     SubscribeAndPublish() // This is the constructor
@@ -55,6 +57,18 @@ public:
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
 
 
+      if ((j!=19) && (j<19))
+          {
+            gyro_ZS+=gyroZ;
+            j++;
+            gyro_ZS=gyro_ZS/j;
+          }
+      else
+          {
+            gyro_ZS+=gyroZ;
+            j++;
+          }    
+
       // TODO: Gyroscope measurements actually might contain a permanent bias value.
       // You should calculate it while the robot is moving forward and average first, lets say, 20 measurements
       // Then you want to substract it from all further measurements.
@@ -66,14 +80,24 @@ public:
       {
         if (i != 4)
         {
-            legacy_gyro[i] = legacy_gyro[i+1];
-            omega_gyro_s = omega_gyro_s + legacy_gyro[i];
+                legacy_gyro[i] = legacy_gyro[i+1];
+                omega_gyro_s = omega_gyro_s + legacy_gyro[i];
+            
         }
         else
         {
-          legacy_gyro[i] = gyroZ;
+            if (j==20)
+            {
+                legacy_gyro[i] = gyroZ+gyro_ZS;
+            }
+            else
+            {
+                legacy_gyro[i] = gyroZ;
+            }
+
           omega_gyro_s = omega_gyro_s + legacy_gyro[i];
           omega_gyro = omega_gyro_s /(i+1); //сейчас делим сумму на i+1 (4+1=5)
+          
         }
     
 
@@ -94,8 +118,9 @@ public:
                 rwspd=right_wh_rot_speed;
           }   
       omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
-      Wz=(k*omega_spd*0.01)+((1-k)*omega_gyro*0.01);//фильтр
+      Wz=(k*omega_spd*time)+((1-k)*(omega_gyro)*time);//фильтр
       omega=Wz+omega;//интегрирование методом прямоугольников и получение угла курса
+
       speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
       X1=cos(omega)*speed_abs*time;//
       Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
