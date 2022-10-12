@@ -57,11 +57,11 @@ public:
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
 
 
-      if ((j!=19) && (j<19))
+      if (j==19) //условие какрой по счету прохождение скрипта
           {
-            gyro_ZS+=gyroZ;
-            j++;
-            gyro_ZS=gyro_ZS/j;
+            gyro_ZS+=gyroZ; //прибавление нового измерения
+            j++; 
+            gyro_ZS=gyro_ZS/j; //деление всей суммы на 20
           }
       else
           {
