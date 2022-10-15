@@ -23,6 +23,7 @@ class SubscribeAndPublish
     float legacy_gyro[5] = {0}; // last 3 values of gyro measurements
     int j=0;
     float gyro_ZS=0;
+    float spd_X=0, spd_Y=0, spd_Z=0; 
 
 public:
     SubscribeAndPublish() // This is the constructor
@@ -126,6 +127,9 @@ public:
       Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
       X=X+X1;//рассчет пройденного
       Y=Y+Y1;// пути
+      spd_X=accX*time+spd_X;
+      spd_Y=accY*time+spd_Y;
+      printf(" Vx:%f Vy%f Vacc-Vodom:%f \n ",spd_X, spd_Y, (sqrt(pow(spd_X,2)+pow(spd_Y,2))-speed_abs));
       display_navigation_solution(X, Y, omega);
       publish_navigation_solution(X, Y, omega);
     }
