@@ -90,6 +90,8 @@ public:
       // Then you want to substract it from all further measurements.
       float omega_gyro=0, Xacc=0, Yacc=0, *p_legacy_gyro, *p_legacy_accX, *p_legacy_accY;
       p_legacy_gyro=&legacy_gyro[0];
+      p_legacy_accX=&legacy_accX[0];
+      p_legacy_accY=&legacy_accY[0];
       //фильтр 5 последних значений ДЛЯ АКСЕЛЛЕРОМЕТРОВ И ГИРОСКОПОВ
       for (int i = 0; i < 5; ++i) /* NOTE: 
       Consider incresing the number of filtering points More points will introduce the time lag to the system, 
@@ -109,19 +111,19 @@ public:
                 legacy_gyro[i] = gyroZ+gyro_ZS;
                 legacy_accX[i] = accX+accX_ZS;
                 legacy_accY[i] = accY+accY_ZS;
-                omega_gyro= midle_value(p_legacy_gyro,i);
-                Xacc=midle_value(p_legacy_accX,i);
+                omega_gyro= midle_value (p_legacy_gyro,sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));
+                Xacc=midle_value(p_legacy_accX,(sizeof(p_legacy_accX)/sizeof(p_legacy_accX[0])));
+                Yacc=midle_value(p_legacy_accX,sizeof(p_legacy_accY)/sizeof(p_legacy_accY[0]));
                 printf("Vx:%f\n",(Xacc));
-                Yacc=midle_value(p_legacy_accY,i);
-            }
+                }
             else
             {
                 legacy_gyro[i] = gyroZ;
                 legacy_accX[i] = accX;
                 legacy_accY[i] = accY;
-                omega_gyro= midle_value (p_legacy_gyro,i);
-                Xacc=midle_value(p_legacy_accX,(i));
-                Yacc=midle_value(p_legacy_accX,(i));
+                omega_gyro= midle_value (p_legacy_gyro,sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));
+                Xacc=midle_value(p_legacy_accX,(sizeof(p_legacy_accX)/sizeof(p_legacy_accX[0])));
+                Yacc=midle_value(p_legacy_accX,sizeof(p_legacy_accY)/sizeof(p_legacy_accY[0]));
                 printf("Vx:%f\n",(Xacc));
             }
          }
