@@ -60,3 +60,11 @@ Also you can send control commands manually without using the control node:
 rostopic pub -1 /control_data roko_robot/control 0 2 1
 ```
 This will tell the robot that the desired rotation speed of the left wheel equals to 2 rad/s and for the right wheel - 1 rad/s.
+
+## Logging parameters for further analysis
+Для запуска программы записи данных (mat_analysis.py) используйте команду.
+```
+rosrun robot_software mat_analysis.py _screen:=false
+```
+Флаг *_screen* отвечает за отображение графиков параметров в режиме реального времени.
+Не зависимо от значения *_screen* программа записывает полученные данные в текстовый файл *log.csv*.

@@ -63,40 +63,35 @@ public:
       float gps2vn = msg.gps2_vel[0];  // m/s (north)
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
 
-        //выявление смещения 0 ДЛЯ АКСЕЛЕРОМЕТРОВ И ГИРОСКОПОВ
-      if (j<=19)
+      // выявление смещения 0 ДЛЯ АКСЕЛЕРОМЕТРОВ И ГИРОСКОПОВ
+      if (j <= 19)
+      {
+        if (j == 19)  // условие какое по счету прохождение скрипта
         {
-          if (j==19) //условие какое по счету прохождение скрипта
-                       {
-                         gyro_ZS+=gyroZ; //прибавление нового измерения гироскопа
-                         accX_ZS+=accX;
-                         accY_ZS+=accY;
-                         j++; 
-                         gyro_ZS=gyro_ZS/j; //деление всей суммы на 20
-                         accX_ZS=accX_ZS/j;
-                         accY_ZS=accY_ZS/j;
-                       }
-                   else
-                       {
-                         gyro_ZS+=gyroZ;
-                         accX_ZS+=accX;
-                         accY_ZS+=accY;
-                         j++;
-                       }
-                    }   
+          gyro_ZS += gyroZ;  // прибавление нового измерения гироскопа
+          accX_ZS += accX;
+          accY_ZS += accY;
+          j++;  // j becomes 20
+          gyro_ZS = gyro_ZS / j;  // деление всей суммы на 20
+          accX_ZS = accX_ZS / j;
+          accY_ZS = accY_ZS / j;
+        }
+        else
+        {
+          gyro_ZS += gyroZ;
+          accX_ZS += accX;
+          accY_ZS += accY;
+          j++;
+        }
+      }
 
-      // TODO: Gyroscope measurements actually might contain a permanent bias value.
-      // You should calculate it while the robot is moving forward and average first, lets say, 20 measurements
-      // Then you want to substract it from all further measurements.
       float omega_gyro=0, Xacc=0, Yacc=0, *p_legacy_gyro, *p_legacy_accX, *p_legacy_accY;
       p_legacy_gyro=&legacy_gyro[0];
       p_legacy_accX=&legacy_accX[0];
       p_legacy_accY=&legacy_accY[0];
-      //фильтр 5 последних значений ДЛЯ АКСЕЛЛЕРОМЕТРОВ И ГИРОСКОПОВ
-      for (int i = 0; i < 5; ++i) /* NOTE: 
-      Consider incresing the number of filtering points More points will introduce the time lag to the system, 
-      but if your robot is already biased to the right, that might not be such a bad thing
-      */
+
+      // фильтр 5 последних значений ДЛЯ АКСЕЛЛЕРОМЕТРОВ И ГИРОСКОПОВ
+      for (int i = 0; i < 5; ++i)
       {
         if (i != 4)
         {
@@ -106,67 +101,71 @@ public:
         }
         else
         {
-            if (j==20)
+            if (j == 20)
             {
-                legacy_gyro[i] = gyroZ+gyro_ZS;
-                legacy_accX[i] = accX+accX_ZS;
-                legacy_accY[i] = accY+accY_ZS;
-                omega_gyro= midle_value (p_legacy_gyro,sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));
+                legacy_gyro[i] = gyroZ - gyro_ZS;  // NOTE: Было прибавление ошибки, а нужно вычитать :)
+                legacy_accX[i] = accX + accX_ZS;
+                legacy_accY[i] = accY + accY_ZS;
+                omega_gyro = midle_value(p_legacy_gyro, sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));  // NOTE: Так размер массива фиксированый, к чему эти вычисления?
                 Xacc=midle_value(p_legacy_accX,(sizeof(p_legacy_accX)/sizeof(p_legacy_accX[0])));
                 Yacc=midle_value(p_legacy_accX,sizeof(p_legacy_accY)/sizeof(p_legacy_accY[0]));
-                printf("Vx:%f\n",(Xacc));
+                //printf("Vx:%f\n",(Xacc));
                 }
             else
             {
                 legacy_gyro[i] = gyroZ;
                 legacy_accX[i] = accX;
                 legacy_accY[i] = accY;
-                omega_gyro= midle_value (p_legacy_gyro,sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));
+                omega_gyro = midle_value (p_legacy_gyro,sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));
                 Xacc=midle_value(p_legacy_accX,(sizeof(p_legacy_accX)/sizeof(p_legacy_accX[0])));
                 Yacc=midle_value(p_legacy_accX,sizeof(p_legacy_accY)/sizeof(p_legacy_accY[0]));
-                printf("Vx:%f\n",(Xacc));
+                //printf("Vx:%f\n",(Xacc));
             }
          }
       }
 
-      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.01, k=0.9;//объявление переменных
-      
+      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.01, k=0.95;//объявление переменных
+
       if ((left_wh_rot_speed == 0) && (right_wh_rot_speed == 0))// If the sensor data doesn't contain odometry values - use the last ones
-          {
-               left_wh_rot_speed = lwspd;
-               right_wh_rot_speed = rwspd;
-               // NOTE: At this point speed_abs = 0, and you still use it to calculate X and Y
-               // This means that nine times out of ten the robot thinks, that it is rotating in place (without moving forward)
-          }
-          else  
-          {
-                lwspd=left_wh_rot_speed;
-                rwspd=right_wh_rot_speed;
-          }   
-      omega_spd=(-right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI*b);//рассчет угловой скорости по курсу
-      Wz=(k*omega_spd*time)+((1-k)*(omega_gyro)*time);//фильтр комплиментарный
-      omega+=Wz;//интегрирование методом прямоугольников и получение угла курса
+      {
+           left_wh_rot_speed = lwspd;
+           right_wh_rot_speed = rwspd;
+           printf("%d no odo %f %f\n", counter, lwspd, rwspd);
+      }
+      else
+      {
+          lwspd = left_wh_rot_speed;
+          rwspd = right_wh_rot_speed;
+          printf("%d odometry %f %f\n", counter, lwspd, rwspd);
+      }
+      printf("%d gyroscope raw: %f calibrated: %f\n", counter, gyroZ, omega_gyro);
+      omega_spd = (-right_wh_rot_speed + left_wh_rot_speed) * l / (4 * M_PI * b);//рассчет угловой скорости по курсу
+      //k = 1;
+      Wz = k * omega_spd + (1 - k) * omega_gyro;  //фильтр комплEментарный
+      omega = omega + Wz * time;  //интегрирование методом прямоугольников и получение угла курса
       float corX=coriolis(spd_X,omega_spd),corY=coriolis(spd_Y,omega_spd);
-      printf("corX:%f \t corY:%f\n", corX, corY);
+      //printf("corX:%f \t corY:%f\n", corX, corY);
       spd_X=integ(spd_X,time,(Xacc));
       spd_Y=integ((Yacc-(coriolis(spd_Y,omega_spd))),time,spd_Y);
-      
-      speed_abs=(right_wh_rot_speed+left_wh_rot_speed)*l/(4*M_PI);//рассчет изменения модуля скорости
-      X1=cos(omega)*speed_abs*time;//
-      Y1=sin(omega)*speed_abs*time;//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
-      X=X+X1;//рассчет пройденного
-      Y=Y+Y1;// пути
+
+      speed_abs = (right_wh_rot_speed + left_wh_rot_speed) * l / (4 * M_PI);//рассчет изменения модуля скорости
+      printf("~ %d velocities %f %f\n", counter, speed_abs, omega_spd);
+      //X1 = //
+      //Y1=//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
+      X = X + cos(omega) * speed_abs * time;  //рассчет пройденного
+      Y = Y + sin(omega) * speed_abs * time;  // пути
       //printf(" Vx:%f Vy%f Vacc-Vodom:%f \n ",spd_X, spd_Y, (sqrt(pow(spd_X,2)+pow(spd_Y,2))-speed_abs));
       display_navigation_solution(X, Y, omega);
       publish_navigation_solution(X, Y, omega);
-      printf("Vx:%f\n",(spd_X));
-      printf("_______________________________\n");
+      //printf("Vx:%f\n",(spd_X));
+      //printf("_______________________________\n");
+      printf("\n");
     }
     void display_navigation_solution(float x, float y, float omega)
     {
         geometry_msgs::PoseStamped msg = geometry_msgs::PoseStamped();
         msg.header.frame_id = "map";
-        msg.header.seq = counter;
+        msg.header.seq = counter++;
         msg.header.stamp = ros::Time::now();
         msg.pose.position.x = x;
         msg.pose.position.y = y;

@@ -2,6 +2,8 @@
 import math
 import numpy as np
 import rospy
+import csv
+import os
 
 from roko_robot.msg import navigation
 from geometry_msgs.msg import PoseStamped
@@ -16,9 +18,15 @@ class SubscribeAndPublish:
     def __init__(self):
 
         self.screen = rospy.get_param("~screen", True)
+        script_dir = os.path.dirname(__file__)
+        print("output directory: {}".format(script_dir))
+        self.f = open(script_dir + '/log.csv', 'w')
+        self.writer = csv.writer(self.f)
+        self.writer.writerow(['time', 'Xt', 'Yt', 'Ht', 'Xn', 'Yn', 'Hn', 'Error'])
 
-        self._navSub = rospy.Subscriber('roko/navigation_data', navigation, self.navigation_callback)
         self._trueSub = rospy.Subscriber('rviz/pose', PoseStamped, self.true_callback)
+        self._navSub = rospy.Subscriber('roko/navigation_data', navigation, self.navigation_callback)
+
 
         # ROS variables
         self._navSub = 0
@@ -82,6 +90,7 @@ class SubscribeAndPublish:
         err = math.sqrt((msg.X - self.last_x)**2 + (msg.Y - self.last_y)**2)
         self.pos_error.append(err)
         #print(self.pos_error)
+        self.writer.writerow([self.time[-1], self.x_true[-1], self.y_true[-1], 0, self.x_nav[-1], self.y_nav[-1], self.heading_nav[-1], self.pos_error[-1]])
 
     def true_callback(self, msg):
         self.y_true.append(msg.pose.position.x)
@@ -90,11 +99,22 @@ class SubscribeAndPublish:
         self.last_x = msg.pose.position.x
         self.last_y = msg.pose.position.y
 
+    def save_to_file(self):
+
+        if len(self.time) > 10:
+            print(self.time[-1])
+            self.writer.writerow([self.time[-1], self.x_true[-1], self.y_true[-1], 0, self.x_nav[-1], self.y_nav[-1], self.heading_nav[-1], self.pos_error[-1]])
+
 
 def main():
     rospy.init_node('analyzer_node')
     SAP = SubscribeAndPublish()
-    rospy.spin()
+    #rospy.spin()
+    r = rospy.Rate(5) # 100 Hz
+    while not rospy.is_shutdown():
+        #SAP.save_to_file()
+        d = 0
+    SAP.f.close()
 
 
 if __name__ =="__main__":
