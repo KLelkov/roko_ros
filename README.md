@@ -5,6 +5,7 @@ This project contains two ros packages: **roko_robot** and **robot_software**.
 This package imitates the real robot behavior (hardware simulation).
 It uses math to compute the robot motion and to process incoming control commands.
 It also applies noisy measurement models to simulate robot's sensors.
+
 ### robot_software
 This package contains high-level software of the robot - its brains.
 This package should include the navigation, control and general data processing algorithms.
@@ -67,4 +68,21 @@ This will tell the robot that the desired rotation speed of the left wheel equal
 rosrun robot_software mat_analysis.py _screen:=false
 ```
 Флаг *_screen* отвечает за отображение графиков параметров в режиме реального времени.
-Не зависимо от значения *_screen* программа записывает полученные данные в текстовый файл *log.csv*.
+Не зависимо от значения *_screen* программа записывает полученные данные в текстовый файл *log.csv* который лежит в папке */scripts* пакета *robot_software*.
+
+Обратите внимание, что при каждом запуске программы **mat_analysis** файл перезаписывается!
+
+Лог файл содержит таблицу со следующими полями:
+
+- Время (в секундах)
+- Х истинное (м)
+- Y истинное (м)
+- Курс истинный (рад)
+- Х навигационное (м)
+- Y навигационное (м)
+- Курс навигационный (м)
+- Ошибка локализации = определения координат навигацией (м)
+- Угловая скорость навигационная (рад/с)
+- Линейная скорость навигационная (м/с)
+- Угловая скорость левого колеса (управление, рад/с)
+- Угловая скорость правого колеса (управление, рад/с)

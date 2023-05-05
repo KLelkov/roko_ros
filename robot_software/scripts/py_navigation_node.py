@@ -46,9 +46,11 @@ class SubscribeAndPublish:
         X = 0
         Y = 0
         omega = 0
+        vel = 0
+        rate = 0
 
         self.display_navigation_solution(X, Y, omega);
-        self.publish_navigation_solution(X, Y, omega);
+        self.publish_navigation_solution(X, Y, omega, vel, rate);
 
     def display_navigation_solution(self, x, y, omega):
         msg = PoseStamped()
@@ -67,11 +69,13 @@ class SubscribeAndPublish:
         self._displayPub1.publish(self.nav_path)
 
 
-    def publish_navigation_solution(self, x, y, omega):
+    def publish_navigation_solution(self, x, y, omega, velocity, rate):
         msg = navigation()
         msg.timestamp = int(rospy.get_time() * 1000)
         msg.X = x
         msg.Y = y
+        msg.Velocity = velocity
+        msg.Rate = rate
         msg.Omega = omega
         self._navigationPub.publish(msg)
 
