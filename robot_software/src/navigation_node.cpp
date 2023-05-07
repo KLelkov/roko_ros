@@ -62,7 +62,7 @@ public:
       float gps2lon = msg.gps2_pos[1];  // deg
       float gps2vn = msg.gps2_vel[0];  // m/s (north)
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
-
+/*
       // выявление смещения 0 ДЛЯ АКСЕЛЕРОМЕТРОВ И ГИРОСКОПОВ
       if (j <= 19)
       {
@@ -154,13 +154,12 @@ public:
       //Y1=//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
       X = X + cos(omega) * speed_abs * time;  //рассчет пройденного
       Y = Y + sin(omega) * speed_abs * time;  // пути
-      //printf(" Vx:%f Vy%f Vacc-Vodom:%f \n ",spd_X, spd_Y, (sqrt(pow(spd_X,2)+pow(spd_Y,2))-speed_abs));
-      display_navigation_solution(X, Y, omega);
-      publish_navigation_solution(X, Y, omega, speed_abs, omega_spd);
+      //printf(" Vx:%f Vy%f Vacc-Vodom:%f \n ",spd_X, spd_Y, (sqrt(pow(spd_X,2)+pow(spd_Y,2))-speed_abs));*/
+      
       //printf("Vx:%f\n",(spd_X));
       //printf("_______________________________\n");
-      printf("\n");
     }
+
     void display_navigation_solution(float x, float y, float omega)
     {
         geometry_msgs::PoseStamped msg = geometry_msgs::PoseStamped();

@@ -8,6 +8,17 @@ from roko_robot.msg import sensors
 from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 
+dt=0.01 
+P_hat=np.array([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 3, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt]])
+pi=math.pi
+S_mat=np.zeros((6, 6))
+K_mat=np.zeros((6, 6))
+X_hat=np.zeros((6, 6))
+W=np.eye((6))
+psi=0
+psi_dot=0
+I=np.eye(6)
 
 class SubscribeAndPublish:
 
@@ -42,11 +53,80 @@ class SubscribeAndPublish:
         gps2ve = msg.gps2_vel[1]  # m/s (east)
 
 
-        # TODO: Integrate your old navigation algo here
-        X = 0
-        Y = 0
-        omega = 0
-        vel = 0
+        
+        
+        r=0.1
+        l=2*pi*r
+        b=0.5
+        d=0.5
+        B=np.array([[0, 0], [0, 0], [0, 0], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [0, 0]])
+        U=np.array([right_wh_rot_speed, left_wh_rot_speed])
+
+        def kalman_filter(x, p, z, f, h, b, u, w, v, i):
+            # Предсказание
+            q = np.diag(w.A1)  # матрица шумов системы
+            x = np.matmul(f, x) + np.matmul(b, u) + w
+            p = np.matmul(np.matmul(f, p), f.T) + q
+            # Измерение
+            r = np.diag(v.A1)  # матрица шумов измерений
+            y = z - np.matmul(h, x)
+            s = np.matmul(np.matmul(h, p), h.T) + r
+            k = np.matmul(np.matmul(p, h.T), np.linalg.inv(s))
+            x = x + np.matmul(k, y)
+            p = np.matmul(i - np.matmul(k, h), p)
+
+            return x, p
+
+            
+        #тут инициализация переменных для гнсс
+        if gps1lat != 0:
+            E1 = gps1lon * math.cos (gps1lat)* 111100
+            E2 = gps2lon * math.cos (gps2lat)* 111100
+
+            N1 = gps1lat * 111100
+            N2 = gps2lat * 111100
+            psi_gnss=math.atan2((E2-E1)/(N2-N1))
+            
+            E1_dot = gps1ve
+            E2_dot = gps2ve - d * psi_dot * math.cos (psi)
+            N1_dot = gps1vn
+            N2_dot = gps2vn - d * psi_dot * math.sin (psi)
+            psi_gnss_dot=math.atan2((E2-E1)/(N2-N1))
+            H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
+            Z_GNSS=np.array([E1, E2, N1, N2, psi_gnss, E1_dot, E2_dot, N1_dot, N2_dot, psi_gnss_dot])
+        
+        Z_odom=np.array([left_wh_rot_speed, right_wh_rot_speed])
+        H_odom=np.array([[0, 0, 0, pi/(l*math.cos(psi)), pi/(l*math.cos(psi)), b*2*pi/l], [0, 0, 0, pi/(l*math.cos(psi)), pi/(l*math.cos(psi)), b*2*pi/l]])
+        V_odom=np.array([0.01, 0.01])
+        
+        Z_INS=np.array([gyroZ, accX, accY])
+        H_INS=np.array([[0, 0, 0, 0, 0, 1], [0, 0, 0, dt*math.sin(psi_dot), 0, 0], [0, 0, 0, 0, dt*math.cos(psi), 0]])
+        V_INS=np.array([0.25, 0.25, 0.66])
+
+        
+        
+        if gps1lat != 0:
+             H=H_GNSS
+             Z=Z_GNSS
+             V=np.zeros(8)
+        else:
+            if right_wh_rot_speed != 0:
+                H=H_odom
+                Z=Z_odom
+                V=V_odom
+            else:
+                H=H_INS
+                Z=Z_INS
+                V=V_INS
+        global X_hat, P_hat, F_mat, I
+        [X_hat, P_hat]=kalman_filter(X_hat, Z, P_hat,F_mat, H, B, U, W, V, I)
+
+
+        X = P_hat[1,1]
+        Y = P_hat[2,2]
+        omega = P_hat[3,3]
+
+        vel = sqrt(X**2+Y**2)
         rate = 0
 
         self.display_navigation_solution(X, Y, omega);
