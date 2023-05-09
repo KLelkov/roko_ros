@@ -9,13 +9,13 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 
 dt=0.01 
-P_hat=np.array([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 3, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
-F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt]])
+P_hat=np.array([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
 pi=math.pi
 S_mat=np.zeros((6, 6))
 K_mat=np.zeros((6, 6))
-X_hat=np.zeros((6, 6))
-W=np.eye((6))
+X_hat=np.array([[0], [0], [0], [0], [0], [0]])
+W=np.array([[0.1], [0.1], [0.1], [0.1], [0.1], [0.1]])
 psi=0
 psi_dot=0
 I=np.eye(6)
@@ -34,6 +34,7 @@ class SubscribeAndPublish:
 
     # This callback function for sensor data
     def sensor_callback(self, msg):
+        global X_hat, P_hat, F_mat, I, psi
         # Decode the incoming sensor measurements
         left_wh_rot_speed = msg.odom[0]
         right_wh_rot_speed = msg.odom[1]
@@ -52,29 +53,29 @@ class SubscribeAndPublish:
         gps2vn = msg.gps2_vel[0]  # m/s (north)
         gps2ve = msg.gps2_vel[1]  # m/s (east)
 
-
-        
         
         r=0.1
         l=2*pi*r
         b=0.5
         d=0.5
-        B=np.array([[0, 0], [0, 0], [0, 0], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [0, 0]])
-        U=np.array([right_wh_rot_speed, left_wh_rot_speed])
+        B=np.array([[0, 0], [0, 0], [0, 0], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [b*pi/l, b*pi/l]])
+        U=np.array([[right_wh_rot_speed], [left_wh_rot_speed]])
 
         def kalman_filter(x, p, z, f, h, b, u, w, v, i):
             # Предсказание
-            q = np.diag(w.A1)  # матрица шумов системы
+            q = np.diag(w)  # матрица шумов системы
+            print(H)
             x = np.matmul(f, x) + np.matmul(b, u) + w
             p = np.matmul(np.matmul(f, p), f.T) + q
             # Измерение
-            r = np.diag(v.A1)  # матрица шумов измерений
+            r = np.diag(v)  # матрица шумов измерений
+            print(h.shape)
+            print(x.shape)
             y = z - np.matmul(h, x)
             s = np.matmul(np.matmul(h, p), h.T) + r
             k = np.matmul(np.matmul(p, h.T), np.linalg.inv(s))
             x = x + np.matmul(k, y)
             p = np.matmul(i - np.matmul(k, h), p)
-
             return x, p
 
             
@@ -85,48 +86,50 @@ class SubscribeAndPublish:
 
             N1 = gps1lat * 111100
             N2 = gps2lat * 111100
-            psi_gnss=math.atan2((E2-E1)/(N2-N1))
+            psi_gnss=math.atan2((E2-E1),(N2-N1))
             
             E1_dot = gps1ve
-            E2_dot = gps2ve - d * psi_dot * math.cos (psi)
+            E2_dot = gps2ve - d * psi_dot * math.cos (psi_gnss)
             N1_dot = gps1vn
-            N2_dot = gps2vn - d * psi_dot * math.sin (psi)
-            psi_gnss_dot=math.atan2((E2-E1)/(N2-N1))
-            H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
-            Z_GNSS=np.array([E1, E2, N1, N2, psi_gnss, E1_dot, E2_dot, N1_dot, N2_dot, psi_gnss_dot])
-        
-        Z_odom=np.array([left_wh_rot_speed, right_wh_rot_speed])
-        H_odom=np.array([[0, 0, 0, pi/(l*math.cos(psi)), pi/(l*math.cos(psi)), b*2*pi/l], [0, 0, 0, pi/(l*math.cos(psi)), pi/(l*math.cos(psi)), b*2*pi/l]])
-        V_odom=np.array([0.01, 0.01])
-        
-        Z_INS=np.array([gyroZ, accX, accY])
-        H_INS=np.array([[0, 0, 0, 0, 0, 1], [0, 0, 0, dt*math.sin(psi_dot), 0, 0], [0, 0, 0, 0, dt*math.cos(psi), 0]])
-        V_INS=np.array([0.25, 0.25, 0.66])
+            N2_dot = gps2vn - d * psi_dot * math.sin (psi_gnss)
+            psi_gnss_dot=math.atan2((E2_dot-E1_dot),(N2_dot-N1_dot))
 
+            
         
         
+            
         if gps1lat != 0:
+             H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0],[0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
+             Z_GNSS=np.array([E1, E2, N1, N2, psi_gnss, E1_dot, E2_dot, N1_dot, N2_dot, psi_gnss_dot])
              H=H_GNSS
              Z=Z_GNSS
-             V=np.zeros(8)
+             V=np.zeros(10)
+             
         else:
-            if right_wh_rot_speed != 0:
+            if ((right_wh_rot_speed != 0) or (left_wh_rot_speed != 0)):
+                Z_odom=np.array([[left_wh_rot_speed], [right_wh_rot_speed]])
+                H_odom=np.array([[0, 0, 0, pi/(l*math.cos(psi)), pi/(l*math.cos(psi)), b*2*pi/l], [0, 0, 0, pi/(l*math.sin(psi)), pi/(l*math.sin(psi)), b*2*pi/l]])
+                V_odom=np.array([0.01, 0.01])
                 H=H_odom
                 Z=Z_odom
                 V=V_odom
             else:
+                Z_INS=np.array([gyroZ, accX, accY])
+                H_INS=np.array([[0, 0, 0, 0, 0, 1], [0, 0, 0, dt*math.sin(psi_dot), 0, 0], [0, 0, 0, 0, dt*math.cos(psi), 0]])
+                V_INS=np.array([0.66, 0.25, 0.25])
                 H=H_INS
                 Z=Z_INS
                 V=V_INS
-        global X_hat, P_hat, F_mat, I
-        [X_hat, P_hat]=kalman_filter(X_hat, Z, P_hat,F_mat, H, B, U, W, V, I)
+        
+
+        [X_hat, P_hat]=kalman_filter(X_hat, P_hat, Z,F_mat, H, B, U, W, V, I)
 
 
         X = P_hat[1,1]
         Y = P_hat[2,2]
-        omega = P_hat[3,3]
-
-        vel = sqrt(X**2+Y**2)
+        psi = P_hat[3,3]
+        omega=P_hat[3,3]
+        vel = math.sqrt(X**2+Y**2)
         rate = 0
 
         self.display_navigation_solution(X, Y, omega);
