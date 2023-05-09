@@ -67,7 +67,7 @@ public:
       Y=Y+Y1;// рассчет пройденного пути
       //counter++;
       display_navigation_solution(X, Y, omega);
-      publish_navigation_solution(X, Y, omega);
+      publish_navigation_solution(X, Y, omega, speed_abs, omega_spd);
     }
 
     void display_navigation_solution(float x, float y, float omega)
@@ -87,13 +87,15 @@ public:
         displayPub1.publish(nav_path);
     }
 
-    void publish_navigation_solution(float x, float y, float omega)
+    void publish_navigation_solution(float x, float y, float omega, float velocity, float rate)
     {
         roko_robot::navigation msg = roko_robot::navigation();
         msg.timestamp = ros::Time::now().toSec() / 1000.0;
         msg.X = x;
         msg.Y = y;
         msg.Omega = omega;
+	msg.Velocity = velocity;
+        msg.Rate = rate;
         navigationPub.publish(msg);
     }
 
