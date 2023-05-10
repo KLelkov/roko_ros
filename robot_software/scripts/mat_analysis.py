@@ -89,8 +89,8 @@ class SubscribeAndPublish:
 
 
     def navigation_callback(self, msg):
-        self.y_nav.append(msg.X)
-        self.x_nav.append(msg.Y)
+        self.y_nav.append(msg.Y)
+        self.x_nav.append(msg.X)
         self.heading_nav.append(msg.Omega)
         self.time.append(rospy.get_time() - self.time0)
         err = math.sqrt((msg.X - self.last_x)**2 + (msg.Y - self.last_y)**2)
@@ -107,8 +107,8 @@ class SubscribeAndPublish:
         #self.writer.writerow([self.time[-1], self.x_true[-1], self.y_true[-1], 0, self.x_nav[-1], self.y_nav[-1], self.heading_nav[-1], self.pos_error[-1]])
 
     def true_callback(self, msg):
-        self.y_true.append(msg.pose.position.x)
-        self.x_true.append(msg.pose.position.y)
+        self.y_true.append(msg.pose.position.y)
+        self.x_true.append(msg.pose.position.x)
         self.heading_true.append(math.asin(msg.pose.orientation.z) * 2)
         self.last_x = msg.pose.position.x
         self.last_y = msg.pose.position.y
