@@ -87,8 +87,6 @@ class SubscribeAndPublish:
             F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
             print(f"dt: {dt}")
         last_time = timestamp
-        
-        
         #B=np.array([[0, 0], [0, 0], [0, 0], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [b*pi/l, b*pi/l]])
         #U=np.array([[right_wh_rot_speed], [left_wh_rot_speed]])
 
@@ -99,7 +97,7 @@ class SubscribeAndPublish:
             # update
             Z_INS=np.array([[gyroZ]])
             H_INS=np.array([[0, 0, 0, 0, 0, 1]])
-            V_INS=np.array([7e-5])  # 7e-5 = СКО дрейфа гироскопа
+            V_INS=np.array([[7e-5]])  # 7e-5 = СКО дрейфа гироскопа
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_INS, H_INS, V_INS, I)
 
         # ODO (10 Hz)
@@ -107,12 +105,16 @@ class SubscribeAndPublish:
         # update
 
         if left_wh_rot_speed != 0 or right_wh_rot_speed != 0:
+            
+
+
+
             r=0.1
             l=2*pi*r
             b=0.5
             Z_odom=np.array([[left_wh_rot_speed], [right_wh_rot_speed]])
             H_odom=np.array([[0, 0, 0, 0, (2*pi)/(l*math.sin(X_hat[2][0])), b*2*pi/l], [0, 0, 0, (2*pi)/(l*math.cos(X_hat[2][0])), 0, -b*2*pi/l]])
-            V_odom=np.array([0.001, 0.001])
+            V_odom=np.array([5e-2, 5e-2])
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_odom, H_odom, V_odom, I)            
 
         # GPS (1 Hz)
@@ -140,9 +142,10 @@ class SubscribeAndPublish:
             psi_gnss2=math.atan2((E2_dot),(N2_dot))
             H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0],[0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0]])
             Z_GNSS=np.array([[E1], [E2], [N1], [N2], [psi_gnss1], [N1_dot], [N2_dot], [E1_dot], [E2_dot]])
-            V_GNSS=np.array([2e-1, 2e-1, 2e-1, 2e-1, 1e-1, 5e-1, 5e-1, 5e-1, 5e-1])
+            V_GNSS=np.array([2e-2, 2e-2, 2e-2, 2e-2, 1e-2, 5e-2, 5e-1, 5e-1, 5e-1])
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
-            #self.display_navigation_solution(N1, E1, psi_gnss1);
+            self.display_navigation_solution(N1, E1, psi_gnss1);
+            last_time = timestamp
 
 
 
