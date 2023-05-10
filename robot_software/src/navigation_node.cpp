@@ -180,7 +180,7 @@ public:
       Y = Y + sin(omega) * speed_abs * time;  // пути
       //printf(" Vx:%f Vy%f Vacc-Vodom:%f \n ",spd_X, spd_Y, (sqrt(pow(spd_X,2)+pow(spd_Y,2))-speed_abs));
       display_navigation_solution(X, Y, omega);
-      publish_navigation_solution(X, Y, omega);
+      publish_navigation_solution(X, Y, omega, speed_abs, omega_spd);
       //printf("Vx:%f\n",(spd_X));
       //printf("_______________________________\n");
       printf("\n");
@@ -202,13 +202,15 @@ public:
         displayPub1.publish(nav_path);
     }
 
-    void publish_navigation_solution(float x, float y, float omega)
+    void publish_navigation_solution(float x, float y, float omega, float velocity, float rate)
     {
         roko_robot::navigation msg = roko_robot::navigation();
         msg.timestamp = ros::Time::now().toSec() / 1000.0;
         msg.X = x;
         msg.Y = y;
         msg.Omega = omega;
+        msg.Velocity = velocity;
+        msg.Rate = rate;
         navigationPub.publish(msg);
     }
 
