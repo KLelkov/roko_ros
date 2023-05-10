@@ -9,11 +9,11 @@ from geometry_msgs.msg import PoseStamped
 from nav_msgs.msg import Path
 
 dt=0.01 
-P_hat=np.array([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+P_hat=np.array([[100, 0, 0, 0, 0, 0], [0, 100, 0, 0, 0, 0], [0, 0, 100, 0, 0, 0], [0, 0, 0, 100, 0, 0], [0, 0, 0, 0, 100, 0], [0, 0, 0, 0, 0, 100]])
 F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
 pi=math.pi
-S_mat=np.zeros((6, 6))
-K_mat=np.zeros((6, 6))
+#S_mat=np.zeros((6, 6))
+#K_mat=np.zeros((6, 6))
 X_hat=np.array([[0], [0], [0], [0], [0], [0]])
 W=np.array([[0.1], [0.1], [0.1], [0.1], [0.1], [0.1]])
 psi=0
@@ -31,6 +31,29 @@ class SubscribeAndPublish:
         self._navigationPub = rospy.Publisher('roko/navigation_data', navigation, queue_size=2)
         self._displayPub1 = rospy.Publisher('rviz/path_nav', Path, queue_size=2)
         self._displayPub2 = rospy.Publisher('rviz/pose_nav', PoseStamped, queue_size=2)
+
+    def kalman_filter_predict(x, p, f, w):
+        # Предсказание
+        q = np.diag(w)  # матрица шумов системы
+        #print(H)
+        x = np.matmul(f, x) + w
+        p = np.matmul(np.matmul(f, p), f.T) + q
+        print(f"Predict timespamp: {int(rospy.get_time() * 1000)}")
+        return x, p
+    
+    def kalman_filter_update(x, p, z, h, v, i):
+        # Измерение
+        r = np.diag(v)  # матрица шумов измерений
+        #print(h.shape)
+        #print(x.shape)
+        y = z - np.matmul(h, x)
+        s = np.matmul(np.matmul(h, p), h.T) + r
+        k = np.matmul(np.matmul(p, h.T), np.linalg.inv(s))
+        x = x + np.matmul(k, y)
+        p = np.matmul(i - np.matmul(k, h), p)
+
+        print(f"Update timespamp: {int(rospy.get_time() * 1000)}")
+        return x, p
 
     # This callback function for sensor data
     def sensor_callback(self, msg):
@@ -52,8 +75,8 @@ class SubscribeAndPublish:
         gps2lon = msg.gps2_pos[1]  # deg
         gps2vn = msg.gps2_vel[0]  # m/s (north)
         gps2ve = msg.gps2_vel[1]  # m/s (east)
+        timestamp = msg.timestamp # milliseconds
 
-        
         r=0.1
         l=2*pi*r
         b=0.5
@@ -61,22 +84,31 @@ class SubscribeAndPublish:
         B=np.array([[0, 0], [0, 0], [0, 0], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [b*pi/l, b*pi/l]])
         U=np.array([[right_wh_rot_speed], [left_wh_rot_speed]])
 
-        def kalman_filter(x, p, z, f, h, b, u, w, v, i):
-            # Предсказание
-            q = np.diag(w)  # матрица шумов системы
-            print(H)
-            x = np.matmul(f, x) + np.matmul(b, u) + w
-            p = np.matmul(np.matmul(f, p), f.T) + q
-            # Измерение
-            r = np.diag(v)  # матрица шумов измерений
-            print(h.shape)
-            print(x.shape)
-            y = z - np.matmul(h, x)
-            s = np.matmul(np.matmul(h, p), h.T) + r
-            k = np.matmul(np.matmul(p, h.T), np.linalg.inv(s))
-            x = x + np.matmul(k, y)
-            p = np.matmul(i - np.matmul(k, h), p)
-            return x, p
+        # IMU (100 Hz)
+        if gps1lat == 0 and left_wh_rot_speed == 0 and right_wh_rot_speed == 0:
+            # predict
+            [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_predict(X_hat, P_hat, F_mat, W)
+            # update
+            Z_INS=np.array([gyroZ, accX, accY])
+            H_INS=np.array([[0, 0, 0, 0, 0, 1]])
+            V_INS=np.array([7e-5])  # 7e-5 = СКО дрейфа гироскопа
+            [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_INS, H_INS, V_INS, I)
+
+        # ODO (10 Hz)
+        # условие
+        # update
+
+        # GPS (1 Hz)
+        # условие
+        # update
+
+
+
+
+
+        
+
+        
 
             
         #тут инициализация переменных для гнсс
@@ -122,7 +154,7 @@ class SubscribeAndPublish:
                 V=V_INS
         
 
-        [X_hat, P_hat]=kalman_filter(X_hat, P_hat, Z,F_mat, H, B, U, W, V, I)
+        #[X_hat, P_hat]=kalman_filter(X_hat, P_hat, Z,F_mat, H, B, U, W, V, I)
 
 
         X = P_hat[1,1]
