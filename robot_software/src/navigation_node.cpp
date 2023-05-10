@@ -30,6 +30,9 @@ class SubscribeAndPublish
     float spd_X=0, spd_Y=0, spd_Z=0;
     float legacy_accX[5] = {0},legacy_accY[5] = {0};
     float accX_ZS=0, accY_ZS=0;
+    // данные для одометра
+    float legacy_odom_left[5] = {0}, legacy_odom_right[5] = {0};
+    float odomL_ZS=0, odomR_ZS=0;
 
 public:
     SubscribeAndPublish() // This is the constructor
@@ -62,69 +65,6 @@ public:
       float gps2lon = msg.gps2_pos[1];  // deg
       float gps2vn = msg.gps2_vel[0];  // m/s (north)
       float gps2ve = msg.gps2_vel[1];  // m/s (east)
-/*
-      // выявление смещения 0 ДЛЯ АКСЕЛЕРОМЕТРОВ И ГИРОСКОПОВ
-      if (j <= 19)
-      {
-        if (j == 19)  // условие какое по счету прохождение скрипта
-        {
-          gyro_ZS += gyroZ;  // прибавление нового измерения гироскопа
-          accX_ZS += accX;
-          accY_ZS += accY;
-          j++;  // j becomes 20
-          gyro_ZS = gyro_ZS / j;  // деление всей суммы на 20
-          accX_ZS = accX_ZS / j;
-          accY_ZS = accY_ZS / j;
-        }
-        else
-        {
-          gyro_ZS += gyroZ;
-          accX_ZS += accX;
-          accY_ZS += accY;
-          j++;
-        }
-      }
-
-      float omega_gyro=0, Xacc=0, Yacc=0, *p_legacy_gyro, *p_legacy_accX, *p_legacy_accY;
-      p_legacy_gyro=&legacy_gyro[0];
-      p_legacy_accX=&legacy_accX[0];
-      p_legacy_accY=&legacy_accY[0];
-
-      // фильтр 5 последних значений ДЛЯ АКСЕЛЛЕРОМЕТРОВ И ГИРОСКОПОВ
-      for (int i = 0; i < 5; ++i)
-      {
-        if (i != 4)
-        {
-                legacy_gyro[i] = legacy_gyro[i+1];
-                legacy_accX[i] = legacy_accX[i+1];
-                legacy_accY[i] = legacy_accY[i+1];
-        }
-        else
-        {
-            if (j == 20)
-            {
-                legacy_gyro[i] = gyroZ - gyro_ZS;  // NOTE: Было прибавление ошибки, а нужно вычитать :)
-                legacy_accX[i] = accX + accX_ZS;
-                legacy_accY[i] = accY + accY_ZS;
-                omega_gyro = midle_value(p_legacy_gyro, sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));  // NOTE: Так размер массива фиксированый, к чему эти вычисления?
-                Xacc=midle_value(p_legacy_accX,(sizeof(p_legacy_accX)/sizeof(p_legacy_accX[0])));
-                Yacc=midle_value(p_legacy_accX,sizeof(p_legacy_accY)/sizeof(p_legacy_accY[0]));
-                //printf("Vx:%f\n",(Xacc));
-                }
-            else
-            {
-                legacy_gyro[i] = gyroZ;
-                legacy_accX[i] = accX;
-                legacy_accY[i] = accY;
-                omega_gyro = midle_value (p_legacy_gyro,sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));
-                Xacc=midle_value(p_legacy_accX,(sizeof(p_legacy_accX)/sizeof(p_legacy_accX[0])));
-                Yacc=midle_value(p_legacy_accX,sizeof(p_legacy_accY)/sizeof(p_legacy_accY[0]));
-                //printf("Vx:%f\n",(Xacc));
-            }
-         }
-      }
-
-      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.01, k=0.95;//объявление переменных
 
       if ((left_wh_rot_speed == 0) && (right_wh_rot_speed == 0))// If the sensor data doesn't contain odometry values - use the last ones
       {
@@ -138,6 +78,90 @@ public:
           rwspd = right_wh_rot_speed;
           printf("%d odometry %f %f\n", counter, lwspd, rwspd);
       }
+
+      // выявление смещения 0 ДЛЯ АКСЕЛЕРОМЕТРОВ И ГИРОСКОПОВ
+      if (j <= 19)
+      {
+        if (j == 19)  // условие какое по счету прохождение скрипта
+        {
+          gyro_ZS += gyroZ;  // прибавление нового измерения гироскопа
+          accX_ZS += accX;
+          accY_ZS += accY;
+          odomL_ZS += left_wh_rot_speed;
+          odomR_ZS += right_wh_rot_speed;
+          j++;  // j becomes 20
+          gyro_ZS = gyro_ZS / j;  // деление всей суммы на 20
+          accX_ZS = accX_ZS / j;
+          accY_ZS = accY_ZS / j;
+          odomL_ZS += left_wh_rot_speed / j;
+          odomR_ZS += right_wh_rot_speed / j;
+        }
+        else
+        {
+          gyro_ZS += gyroZ;
+          accX_ZS += accX;
+          accY_ZS += accY;
+          odomL_ZS += left_wh_rot_speed;
+          odomR_ZS += right_wh_rot_speed;
+          j++;
+        }
+      }
+      //указатели на массивы
+      float omega_gyro=0, Xacc=0, Yacc=0, *p_legacy_gyro, *p_legacy_accX, *p_legacy_accY;
+      float Rwspd=0, Lwspd=0, *p_Rwspd, *p_Lwspd;
+      p_legacy_gyro=&legacy_gyro[0];
+      p_legacy_accX=&legacy_accX[0];
+      p_legacy_accY=&legacy_accY[0];
+
+      p_Rwspd=&legacy_odom_right[0];
+      p_Lwspd=&legacy_odom_left[0];
+
+      // фильтр 5 последних значений ДЛЯ АКСЕЛЛЕРОМЕТРОВ И ГИРОСКОПОВ
+      for (int i = 0; i < 5; ++i)
+      {
+        if (i != 4)
+        {
+                legacy_gyro[i] = legacy_gyro[i+1];
+                legacy_accX[i] = legacy_accX[i+1];
+                legacy_accY[i] = legacy_accY[i+1];
+                legacy_odom_left[i]=legacy_odom_left[i+1];
+                legacy_odom_right[i]=legacy_odom_right[i+1];
+        }
+        else
+        {
+            if (j == 20)
+            {
+                legacy_gyro[i] = gyroZ - gyro_ZS;  // NOTE: Было прибавление ошибки, а нужно вычитать :)
+                legacy_accX[i] = accX - accX_ZS;
+                legacy_accY[i] = accY - accY_ZS;
+                legacy_odom_right[i]=right_wh_rot_speed - odomL_ZS;
+                legacy_odom_right[i]=left_wh_rot_speed - odomR_ZS;
+                omega_gyro = midle_value(p_legacy_gyro, sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));  // NOTE: Так размер массива фиксированый, к чему эти вычисления?
+                Xacc=midle_value(p_legacy_accX,(sizeof(p_legacy_accX)/sizeof(p_legacy_accX[0])));
+                Yacc=midle_value(p_legacy_accX,sizeof(p_legacy_accY)/sizeof(p_legacy_accY[0]));
+                Lwspd=midle_value(p_Lwspd, sizeof(p_Lwspd)/sizeof(p_Lwspd[0]));
+                Rwspd=midle_value(p_Rwspd, sizeof(p_Rwspd)/sizeof(p_Rwspd[0]));
+
+                }
+            else
+            {
+                legacy_gyro[i] = gyroZ;
+                legacy_accX[i] = accX;
+                legacy_accY[i] = accY;
+                legacy_odom_right[i]=right_wh_rot_speed;
+                legacy_odom_right[i]=left_wh_rot_speed;
+                omega_gyro = midle_value (p_legacy_gyro,sizeof(p_legacy_gyro)/sizeof(p_legacy_gyro[0]));
+                Xacc=midle_value(p_legacy_accX,(sizeof(p_legacy_accX)/sizeof(p_legacy_accX[0])));
+                Yacc=midle_value(p_legacy_accX,sizeof(p_legacy_accY)/sizeof(p_legacy_accY[0]));
+                Lwspd=midle_value(p_Lwspd, sizeof(p_Lwspd)/sizeof(p_Lwspd[0]));
+                Rwspd=midle_value(p_Rwspd, sizeof(p_Rwspd)/sizeof(p_Rwspd[0]));
+
+            }
+         }
+      }
+
+      float X1, Y1, r=0.1, l=2*M_PI*r, omega_spd, speed_abs,  Wz, b=0.5, time=0.01, k=0.95;//объявление переменных
+
       printf("%d gyroscope raw: %f calibrated: %f\n", counter, gyroZ, omega_gyro);
       omega_spd = (-right_wh_rot_speed + left_wh_rot_speed) * l / (4 * M_PI * b);//рассчет угловой скорости по курсу
       //k = 1;
@@ -154,12 +178,13 @@ public:
       //Y1=//рассчет расстояния по х и у, которое преодолевает робот за период time со скоростью speed_abs
       X = X + cos(omega) * speed_abs * time;  //рассчет пройденного
       Y = Y + sin(omega) * speed_abs * time;  // пути
-      //printf(" Vx:%f Vy%f Vacc-Vodom:%f \n ",spd_X, spd_Y, (sqrt(pow(spd_X,2)+pow(spd_Y,2))-speed_abs));*/
-      
+      //printf(" Vx:%f Vy%f Vacc-Vodom:%f \n ",spd_X, spd_Y, (sqrt(pow(spd_X,2)+pow(spd_Y,2))-speed_abs));
+      display_navigation_solution(X, Y, omega);
+      publish_navigation_solution(X, Y, omega);
       //printf("Vx:%f\n",(spd_X));
       //printf("_______________________________\n");
+      printf("\n");
     }
-
     void display_navigation_solution(float x, float y, float omega)
     {
         geometry_msgs::PoseStamped msg = geometry_msgs::PoseStamped();
@@ -177,15 +202,13 @@ public:
         displayPub1.publish(nav_path);
     }
 
-    void publish_navigation_solution(float x, float y, float omega, float velocity, float rate)
+    void publish_navigation_solution(float x, float y, float omega)
     {
         roko_robot::navigation msg = roko_robot::navigation();
         msg.timestamp = ros::Time::now().toSec() / 1000.0;
         msg.X = x;
         msg.Y = y;
         msg.Omega = omega;
-        msg.Velocity = velocity;
-        msg.Rate = rate;
         navigationPub.publish(msg);
     }
 

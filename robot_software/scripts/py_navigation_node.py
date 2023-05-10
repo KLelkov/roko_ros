@@ -98,10 +98,30 @@ class SubscribeAndPublish:
         # условие
         # update
 
+        if left_wh_rot_speed != 0 or right_wh_rot_speed != 0
+            Z_odom=np.array([[left_wh_rot_speed], [right_wh_rot_speed]])
+            H_odom=np.array([[0, 0, 0, pi/(l*math.cos(psi)), pi/(l*math.cos(psi)), b*2*pi/l], [0, 0, 0, pi/(l*math.sin(psi)), pi/(l*math.sin(psi)), b*2*pi/l]])
+            V_odom=np.array([0.01, 0.01])
+            [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_odom, H_odom, V_odom, I)            
+
         # GPS (1 Hz)
         # условие
         # update
-
+        if gps1lat!= 0 or   gps2lon != 0
+            E1 = gps1lon * math.cos (gps1lat)* 111100
+            E2 = gps2lon * math.cos (gps2lat)* 111100
+            N1 = gps1lat * 111100
+            N2 = gps2lat * 111100
+            psi_gnss2=math.atan2((E2_dot),(N2_dot))
+            E1_dot = gps1ve
+            E2_dot = gps2ve - d * psi_dot * math.cos (psi_gnss)
+            N1_dot = gps1vn
+            N2_dot = gps2vn - d * psi_dot * math.sin (psi_gnss)
+            psi_gnss1=math.atan2((E1_dot),(N1_dot))
+            Z_odom=np.array([[left_wh_rot_speed], [right_wh_rot_speed]])
+            H_odom=np.array([[0, 0, 0, pi/(l*math.cos(psi)), pi/(l*math.cos(psi)), b*2*pi/l], [0, 0, 0, pi/(l*math.sin(psi)), pi/(l*math.sin(psi)), b*2*pi/l]])
+            V_odom=np.array([0, 0])
+            [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_odom, H_odom, V_odom, I)
 
 
 
