@@ -20,7 +20,7 @@ class SubscribeAndPublish:
         self._path = Path()
 
         # Create publisher for publishing sensor measurements
-        self._sensorPub = rospy.Publisher('roko/sensors_data', sensors, queue_size=10)
+        self._sensorPub = rospy.Publisher('roko/sensors_data', sensors, queue_size=1)
         self._controlSub = rospy.Subscriber('roko/control_data', control, self.control_callback)
 
         # Create publisher for publishing true robot motion parameters
@@ -42,12 +42,12 @@ class SubscribeAndPublish:
         # Extract control values from the message
         left = msg.left
         right = msg.right
-        print("Command received!")
+        # print("Command received!")
         velocity = (left + right) * self._robot._rw / 2.0
         angular_rate = (left - right) * self._robot._rw / 2.0 / self._robot._lw
-        print("Expected velocity: {:.1f}".format(velocity))
-        print("Expected angular rate: {:.1f}".format(angular_rate))
-        print("")
+        # print("Expected velocity: {:.1f}".format(velocity))
+        # print("Expected angular rate: {:.1f}".format(angular_rate))
+        # print("")
 
         # Pass these values to the robot
         self._robot.set_odo(left, right)
@@ -155,7 +155,7 @@ def main():
         if counter % 10 == 0:
             SAP.publishOdometry()
             SAP.publishPose()
-        if counter % 100 == 0:
+        if counter % 20 == 0:
             SAP.publishGPS()
         r.sleep()
 # End on main()

@@ -15,7 +15,7 @@ pi=math.pi
 #S_mat=np.zeros((6, 6))
 #K_mat=np.zeros((6, 6))
 X_hat=np.array([[0], [0], [0], [0], [0], [0]])
-W=np.array([[1e-6], [1e-6], [1e-7], [1e-5], [1e-5], [1e-5]])
+W=np.array([[1e-5], [1e-5], [1e-7], [1e-5], [1e-5], [1e-5]])
 psi=0
 psi_dot=0
 I=np.eye(6)
@@ -30,7 +30,7 @@ class SubscribeAndPublish:
         self.counter = 0
 
         # Create publisher for publishing sensor measurements
-        self._sensorsSub = rospy.Subscriber('roko/sensors_data', sensors, self.sensor_callback)
+        self._sensorsSub = rospy.Subscriber('roko/sensors_data', sensors, self.sensor_callback, queue_size=1)
         self._navigationPub = rospy.Publisher('roko/navigation_data', navigation, queue_size=2)
         self._displayPub1 = rospy.Publisher('rviz/path_nav', Path, queue_size=2)
         self._displayPub2 = rospy.Publisher('rviz/pose_nav', PoseStamped, queue_size=2)
@@ -41,7 +41,7 @@ class SubscribeAndPublish:
         #print(H)
         x = np.matmul(f, x) + w
         p = np.matmul(np.matmul(f, p), f.T) + q
-        print(f"Predict timespamp: {int(rospy.get_time() * 1000)}")
+        #print(f"Predict timespamp: {int(rospy.get_time() * 1000)}")
         return x, p
     
     def kalman_filter_update(x, p, z, h, v, i):
@@ -56,7 +56,7 @@ class SubscribeAndPublish:
         x = x + np.matmul(k, y)
         p = np.matmul(i - np.matmul(k, h), p)
 
-        print(f"Update timespamp: {int(rospy.get_time() * 1000)}")
+        #print(f"Update timespamp: {int(rospy.get_time() * 1000)}")
         return x, p
 
     # This callback function for sensor data
@@ -80,12 +80,13 @@ class SubscribeAndPublish:
         gps2vn = msg.gps2_vel[0]  # m/s (north)
         gps2ve = msg.gps2_vel[1]  # m/s (east)
         timestamp = int(rospy.get_time() * 1000)  #msg.timestamp # milliseconds
+        #timestamp = msg.timestamp # milliseconds
 
 
         if last_time != 0:
             dt = (timestamp - last_time) / 1000
             F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
-            #print(f"last time: {last_time} stamp: {timestamp}")
+            #print(f"time diff: {int(rospy.get_time() * 1000) - msg.timestamp} ms")
             #print(f"diff: {timestamp - last_time} dt: {dt}")
         
         #B=np.array([[0, 0], [0, 0], [0, 0], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [b*pi/l, b*pi/l]])
@@ -133,18 +134,21 @@ class SubscribeAndPublish:
             E2 = (gps2lon - gps_zero2[1]) * math.cos (gps2lat * pi / 180)* 111100 + d * math.sin(X_hat[2][0])
             N1 = (gps1lat - gps_zero1[0]) * 111100
             N2 = (gps2lat - gps_zero2[0]) * 111100 + d * math.cos(X_hat[2][0])
+
+            
             
             E1_dot = gps1ve
             E2_dot = gps2ve + d * X_hat[5][0] * math.sin(X_hat[2][0]) + d * math.cos(X_hat[2][0])
             N1_dot = gps1vn
             N2_dot = gps2vn + d * X_hat[5][0] * math.cos(X_hat[2][0]) - d * math.sin(X_hat[2][0])
-            print(f"e1: {E1_dot} n1: {N1_dot}")
             psi_gnss1=math.atan2((E1_dot),(N1_dot))
             psi_gnss2=math.atan2((E2_dot),(N2_dot))
             H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0],[0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0]])
             Z_GNSS=np.array([[E1], [E2], [N1], [N2], [psi_gnss1], [N1_dot], [N2_dot], [E1_dot], [E2_dot]])
-            V_GNSS=np.array([2e-2, 2e-2, 2e-2, 2e-2, 1e-2, 5e-2, 5e-1, 5e-1, 5e-1])
-            #[X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
+            V_GNSS=np.array([2e-2, 2e-2, 2e-2, 2e-2, 1e-2, 5e-0, 8e-0, 5e-0, 8e-0])
+            print(f"GPS 1 pos: {N1} {E1}, vel: {N1_dot} {E1_dot}")
+            print(f"GPS 2 pos: {N2} {E2}, vel: {N2_dot} {E2_dot}")
+            [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
       
 
             
@@ -200,13 +204,13 @@ class SubscribeAndPublish:
         omega=X_hat[5][0]
         vel = math.sqrt(X_hat[3][0]**2 + X_hat[4][0]**2)
         rate = omega
-        print(f"x: {X_hat[0][0]}")
-        print(f"y: {X_hat[1][0]}")
-        print(f"psi: {X_hat[2][0]}")
-        print(f"dx: {X_hat[3][0]}")
-        print(f"dy: {X_hat[4][0]}")
-        print(f"dpsi: {X_hat[5][0]}")
-        print("")
+        # print(f"x: {X_hat[0][0]}")
+        # print(f"y: {X_hat[1][0]}")
+        # print(f"psi: {X_hat[2][0]}")
+        # print(f"dx: {X_hat[3][0]}")
+        # print(f"dy: {X_hat[4][0]}")
+        # print(f"dpsi: {X_hat[5][0]}")
+        # print("")
 
         self.display_navigation_solution(X, Y, omega);
         self.publish_navigation_solution(X, Y, omega, vel, rate);
