@@ -79,19 +79,21 @@ class SubscribeAndPublish:
         gps2lon = msg.gps2_pos[1]  # deg
         gps2vn = msg.gps2_vel[0]  # m/s (north)
         gps2ve = msg.gps2_vel[1]  # m/s (east)
-        timestamp = msg.timestamp # milliseconds
+        timestamp = int(rospy.get_time() * 1000)  #msg.timestamp # milliseconds
 
 
         if last_time != 0:
             dt = (timestamp - last_time) / 1000
             F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
-            print(f"dt: {dt}")
-        last_time = timestamp
+            #print(f"last time: {last_time} stamp: {timestamp}")
+            #print(f"diff: {timestamp - last_time} dt: {dt}")
+        
         #B=np.array([[0, 0], [0, 0], [0, 0], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [pi/(l*math.cos(psi)), pi/(l*math.cos(psi))], [b*pi/l, b*pi/l]])
         #U=np.array([[right_wh_rot_speed], [left_wh_rot_speed]])
 
         # IMU (100 Hz)
         if gps1lat == 0 and left_wh_rot_speed == 0 and right_wh_rot_speed == 0:
+            last_time = timestamp
             # predict
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_predict(X_hat, P_hat, F_mat, W)
             # update
@@ -105,16 +107,15 @@ class SubscribeAndPublish:
         # update
 
         if left_wh_rot_speed != 0 or right_wh_rot_speed != 0:
-            
-
-
-
             r=0.1
             l=2*pi*r
             b=0.5
-            Z_odom=np.array([[left_wh_rot_speed], [right_wh_rot_speed]])
-            H_odom=np.array([[0, 0, 0, 0, (2*pi)/(l*math.sin(X_hat[2][0])), b*2*pi/l], [0, 0, 0, (2*pi)/(l*math.cos(X_hat[2][0])), 0, -b*2*pi/l]])
-            V_odom=np.array([5e-2, 5e-2])
+            # Z_odom=np.array([[left_wh_rot_speed], [right_wh_rot_speed]])
+            # H_odom=np.array([[0, 0, 0, 0, (2*pi)/(l*math.sin(X_hat[2][0])), b*2*pi/l], [0, 0, 0, (2*pi)/(l*math.cos(X_hat[2][0])), 0, -b*2*pi/l]])
+            # V_odom=np.array([5e-2, 5e-2])
+            Z_odom=np.array([[(left_wh_rot_speed + right_wh_rot_speed) * math.cos(X_hat[2][0])], [(left_wh_rot_speed + right_wh_rot_speed) * math.sin(X_hat[2][0])], [(left_wh_rot_speed - right_wh_rot_speed)]])
+            H_odom=np.array([[0, 0, 0, 4*pi/l, 0, 0], [0, 0, 0, 0, 4*pi/l, 0], [0, 0, 0, 0, 0, 4*pi*b/l]])
+            V_odom=np.array([5e-2, 5e-2, 5e-2])
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_odom, H_odom, V_odom, I)            
 
         # GPS (1 Hz)
@@ -143,16 +144,8 @@ class SubscribeAndPublish:
             H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0],[0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0]])
             Z_GNSS=np.array([[E1], [E2], [N1], [N2], [psi_gnss1], [N1_dot], [N2_dot], [E1_dot], [E2_dot]])
             V_GNSS=np.array([2e-2, 2e-2, 2e-2, 2e-2, 1e-2, 5e-2, 5e-1, 5e-1, 5e-1])
-            [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
-            self.display_navigation_solution(N1, E1, psi_gnss1);
-            last_time = timestamp
-
-
-
-
-        
-
-        
+            #[X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
+      
 
             
         #тут инициализация переменных для гнсс
