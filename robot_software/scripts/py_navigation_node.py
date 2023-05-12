@@ -98,7 +98,7 @@ class SubscribeAndPublish:
             # update
             Z_INS=np.array([[gyroZ]])
             H_INS=np.array([[0, 0, 0, 0, 0, 1]])
-            V_INS=np.array([[7e-5]])  # 7e-5 = СКО дрейфа гироскопа
+            V_INS=np.array([[7e-1]])  # 7e-5 = СКО дрейфа гироскопа
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_INS, H_INS, V_INS, I)
 
         # ODO (10 Hz)
@@ -117,7 +117,7 @@ class SubscribeAndPublish:
             V_odom=np.array([5e-2, 5e-2, 5e-2])
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_odom, H_odom, V_odom, I)            
 
-        # GPS (1 Hz)
+        # GPS (5 Hz)
         # условие
         # update
         if gps1lat!= 0 or gps2lon != 0:
@@ -143,7 +143,7 @@ class SubscribeAndPublish:
             psi_gnss2=math.atan2((E2_dot),(N2_dot))
             H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0],[0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0]])
             Z_GNSS=np.array([[E1], [E2], [N1], [N2], [psi_gnss1], [N1_dot], [N2_dot], [E1_dot], [E2_dot]])
-            V_GNSS=np.array([2e-2, 2e-2, 2e-2, 2e-2, 1e-2, 5e-0, 8e-0, 5e-0, 8e-0])
+            V_GNSS=np.array([2e-2, 2e-2, 2e-2, 2e-2, 8e-0, 5e-0, 8e-0, 5e-0, 8e-0])
             # print(f"GPS 1 pos: {N1} {E1}, vel: {N1_dot} {E1_dot}")
             # print(f"GPS 2 pos: {N2} {E2}, vel: {N2_dot} {E2_dot}")
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
@@ -154,9 +154,9 @@ class SubscribeAndPublish:
         X = X_hat[0][0]
         Y = X_hat[1][0]
         psi = X_hat[2][0]
-        omega=X_hat[5][0]
+        omega=X_hat[2][0]
         vel = math.sqrt(X_hat[3][0]**2 + X_hat[4][0]**2)
-        rate = omega
+        rate = X_hat[5][0]
         # print(f"x: {X_hat[0][0]}")
         # print(f"y: {X_hat[1][0]}")
         # print(f"psi: {X_hat[2][0]}")
