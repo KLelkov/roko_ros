@@ -12,8 +12,6 @@ dt=0.01
 P_hat=np.array([[100, 0, 0, 0, 0, 0], [0, 100, 0, 0, 0, 0], [0, 0, 100, 0, 0, 0], [0, 0, 0, 100, 0, 0], [0, 0, 0, 0, 100, 0], [0, 0, 0, 0, 0, 100]])
 F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
 pi=math.pi
-#S_mat=np.zeros((6, 6))
-#K_mat=np.zeros((6, 6))
 X_hat=np.array([[0], [0], [0], [0], [0], [0]])
 W=np.array([[1e-5], [1e-5], [1e-7], [1e-5], [1e-5], [1e-5]])
 psi=0
@@ -123,7 +121,7 @@ class SubscribeAndPublish:
         # условие
         # update
         if gps1lat!= 0 or gps2lon != 0:
-            rospy.logerr("--- GPS ---")
+            # rospy.logerr("--- GPS ---")
             d=0.5
             if gps_zero1[0] == 0:
                 gps_zero1 = [gps1lat, gps1lon]
@@ -131,71 +129,26 @@ class SubscribeAndPublish:
                 gps_zero2 = [gps2lat, gps2lon]
 
             E1 = (gps1lon - gps_zero1[1]) * math.cos (gps1lat * pi / 180)* 111100
-            E2 = (gps2lon - gps_zero2[1]) * math.cos (gps2lat * pi / 180)* 111100 + d * math.sin(X_hat[2][0])
+            E2 = (gps2lon - gps_zero2[1]) * math.cos (gps2lat * pi / 180)* 111100 - d * math.sin(X_hat[2][0])
             N1 = (gps1lat - gps_zero1[0]) * 111100
-            N2 = (gps2lat - gps_zero2[0]) * 111100 + d * math.cos(X_hat[2][0])
+            N2 = (gps2lat - gps_zero2[0]) * 111100 - d * math.cos(X_hat[2][0])
 
             
             
             E1_dot = gps1ve
-            E2_dot = gps2ve + d * X_hat[5][0] * math.sin(X_hat[2][0]) + d * math.cos(X_hat[2][0])
+            E2_dot = gps2ve - (d * X_hat[5][0] * math.sin(X_hat[2][0]) + d * math.cos(X_hat[2][0]))
             N1_dot = gps1vn
-            N2_dot = gps2vn + d * X_hat[5][0] * math.cos(X_hat[2][0]) - d * math.sin(X_hat[2][0])
+            N2_dot = gps2vn - (d * X_hat[5][0] * math.cos(X_hat[2][0]) - d * math.sin(X_hat[2][0]))
             psi_gnss1=math.atan2((E1_dot),(N1_dot))
             psi_gnss2=math.atan2((E2_dot),(N2_dot))
             H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0],[0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0]])
             Z_GNSS=np.array([[E1], [E2], [N1], [N2], [psi_gnss1], [N1_dot], [N2_dot], [E1_dot], [E2_dot]])
             V_GNSS=np.array([2e-2, 2e-2, 2e-2, 2e-2, 1e-2, 5e-0, 8e-0, 5e-0, 8e-0])
-            print(f"GPS 1 pos: {N1} {E1}, vel: {N1_dot} {E1_dot}")
-            print(f"GPS 2 pos: {N2} {E2}, vel: {N2_dot} {E2_dot}")
+            # print(f"GPS 1 pos: {N1} {E1}, vel: {N1_dot} {E1_dot}")
+            # print(f"GPS 2 pos: {N2} {E2}, vel: {N2_dot} {E2_dot}")
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
       
 
-            
-        #тут инициализация переменных для гнсс
-        # if gps1lat != 0:
-        #     E1 = gps1lon * math.cos (gps1lat)* 111100
-        #     E2 = gps2lon * math.cos (gps2lat)* 111100
-
-        #     N1 = gps1lat * 111100
-        #     N2 = gps2lat * 111100
-        #     psi_gnss=math.atan2((E2-E1),(N2-N1))
-            
-        #     E1_dot = gps1ve
-        #     E2_dot = gps2ve - d * psi_dot * math.cos (psi_gnss)
-        #     N1_dot = gps1vn
-        #     N2_dot = gps2vn - d * psi_dot * math.sin (psi_gnss)
-        #     psi_gnss_dot=math.atan2((E2_dot-E1_dot),(N2_dot-N1_dot))
-
-            
-        
-        
-            
-        # if gps1lat != 0:
-        #      H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0],[0, 0, 1, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
-        #      Z_GNSS=np.array([E1, E2, N1, N2, psi_gnss, E1_dot, E2_dot, N1_dot, N2_dot, psi_gnss_dot])
-        #      H=H_GNSS
-        #      Z=Z_GNSS
-        #      V=np.zeros(10)
-             
-        # else:
-        #     if ((right_wh_rot_speed != 0) or (left_wh_rot_speed != 0)):
-        #         Z_odom=np.array([[left_wh_rot_speed], [right_wh_rot_speed]])
-        #         H_odom=np.array([[0, 0, 0, pi/(l*math.cos(psi)), pi/(l*math.cos(psi)), b*2*pi/l], [0, 0, 0, pi/(l*math.sin(psi)), pi/(l*math.sin(psi)), b*2*pi/l]])
-        #         V_odom=np.array([0.01, 0.01])
-        #         H=H_odom
-        #         Z=Z_odom
-        #         V=V_odom
-        #     else:
-        #         Z_INS=np.array([gyroZ, accX, accY])
-        #         H_INS=np.array([[0, 0, 0, 0, 0, 1], [0, 0, 0, dt*math.sin(psi_dot), 0, 0], [0, 0, 0, 0, dt*math.cos(psi), 0]])
-        #         V_INS=np.array([0.66, 0.25, 0.25])
-        #         H=H_INS
-        #         Z=Z_INS
-        #         V=V_INS
-        
-
-        #[X_hat, P_hat]=kalman_filter(X_hat, P_hat, Z,F_mat, H, B, U, W, V, I)
 
 
         X = X_hat[0][0]
