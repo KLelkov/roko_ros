@@ -1,0 +1,4 @@
+uint64 timestamp
+string data
+---
+bool response

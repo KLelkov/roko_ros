@@ -1,0 +1,7 @@
+uint64 timestamp
+float64 X
+float64 Y
+float64 Z
+float64 Xpoi
+float64 Ypoi
+float64 Zpoi

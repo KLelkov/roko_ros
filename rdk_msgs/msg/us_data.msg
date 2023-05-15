@@ -1,0 +1,6 @@
+uint64 timestamp
+float64 us_top_right
+float64 us_top_left
+float64 us_top_back
+float64 us_bot_right
+float64 us_bot_left

@@ -1,0 +1,9 @@
+uint64 timestamp
+float64[2] control
+float64[2] odo
+float64[2] current
+float64 voltage
+float64 angleFront
+float64 angleRear
+float64[2] odoRear
+bool block
