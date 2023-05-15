@@ -1,0 +1,4 @@
+uint64 timestamp
+float64 data
+---
+uint64 response

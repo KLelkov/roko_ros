@@ -1,0 +1,9 @@
+uint64 timestamp
+float64 X
+float64 Y
+float64 heading
+float64 lat
+float64 lon
+float64 lat0
+float64 lon0
+float64 offset

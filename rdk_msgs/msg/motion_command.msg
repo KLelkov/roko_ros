@@ -1,0 +1,3 @@
+uint64 timestamp
+float64 velocity_value
+float64 turn_rate_value

@@ -155,7 +155,7 @@ def main():
         if counter % 10 == 0:
             SAP.publishOdometry()
             SAP.publishPose()
-        if counter % 100 == 0:
+        if counter % 20 == 0:
             SAP.publishGPS()
         r.sleep()
 # End on main()

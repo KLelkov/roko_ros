@@ -227,7 +227,7 @@ class Roko:
         pos_noise = 0.7
         vel_noise = 0.2
         gps1_dseed = - pos_mu * self._gps1_seed + math.sqrt(2 * pos_noise ** 2 * pos_mu) * (random.random() - 0.5);
-        self._gps1_seed +=  + gps1_dseed * self._dt;
+        self._gps1_seed +=  + gps1_dseed * 0.2;
 
         # X measurement
         readings[0] += self._gps1_seed + self._gps1_con * math.sin(self._heading) + random.gauss(0, pos_noise)
@@ -235,9 +235,9 @@ class Roko:
         readings[1] += self._gps1_seed + self._gps1_con * math.cos(self._heading) + random.gauss(0, pos_noise)
 
         # North velocity measurement
-        readings[2] = (readings[0] - self._gps1_last_pos[0]) / 1.0  # gps measurement frequency 1 Hz
+        readings[2] = (readings[0] - self._gps1_last_pos[0]) / 0.2  # gps measurement frequency 1 Hz
         # East velocity measurement
-        readings[3] = (readings[1] - self._gps1_last_pos[1]) / 1.0
+        readings[3] = (readings[1] - self._gps1_last_pos[1]) / 0.2
 
         # Store current position measurements
         self._gps1_last_pos = readings[0:2]
@@ -256,7 +256,7 @@ class Roko:
         pos_noise = 0.7
         vel_noise = 0.2
         gps2_dseed = - pos_mu * self._gps2_seed + math.sqrt(2 * pos_noise ** 2 * pos_mu) * (random.random() - 0.5);
-        self._gps2_seed +=  + gps2_dseed * self._dt;
+        self._gps2_seed +=  + gps2_dseed * 0.2;
 
         # X measurement
         readings[4] += self._gps2_seed + self._gps2_con * math.sin(self._heading) + random.gauss(0, pos_noise)
@@ -264,9 +264,9 @@ class Roko:
         readings[5] += self._gps2_seed + self._gps2_con * math.cos(self._heading) + random.gauss(0, pos_noise)
 
         # North velocity measurement
-        readings[6] = (readings[4] - self._gps2_last_pos[0]) / 1.0  # gps measurement frequency 1 Hz
+        readings[6] = (readings[4] - self._gps2_last_pos[0]) / 0.2  # gps measurement frequency 1 Hz
         # East velocity measurement
-        readings[7] = (readings[5] - self._gps2_last_pos[1]) / 1.0
+        readings[7] = (readings[5] - self._gps2_last_pos[1]) / 0.2
 
         # Store current position measurements
         self._gps2_last_pos = readings[4:6]

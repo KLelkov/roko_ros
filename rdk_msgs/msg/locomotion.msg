@@ -1,0 +1,11 @@
+uint64 timestamp
+float64[3] angular_velocity
+float64[3] acceleration
+float64[3] euler
+float64[2] angles
+float64[3] dw
+float64 upsilon
+float64[2] control
+int64[2] odo
+float64 skew
+bool block
