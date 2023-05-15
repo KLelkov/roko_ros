@@ -179,11 +179,10 @@ class SubscribeAndPublish:
                     right_speed = V
 
 
-                    if (V <= 24 and V > 14):
+                    #if (V <= 24 and V > 14):
                         # left_speed = -a
                         # right_speed = a
-                    
-                else :
+                else:
                     a = self.PID_FI(abs(rate))
                     # left_speed = a
                     # right_speed = -a

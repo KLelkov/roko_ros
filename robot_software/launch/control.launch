@@ -2,7 +2,8 @@
 
 <launch>
   <node pkg="roko_robot" type="roko_node.py" name="robot" output="screen"/>
-  <node pkg="robot_software" type="control_node" name="control_node"/>
+  <node pkg="robot_software" type="navigation_node" name="navigation_node" />
+  <node pkg="robot_software" type="py_control_node.py" name="control_node"/>
 <!--launch rviz for visualization-->
   <node pkg="rviz" type="rviz" name="rviz" args="-d $(find robot_software)/trajectory.rviz"/>
 
