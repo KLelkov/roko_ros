@@ -31,8 +31,8 @@ int main(int argc, char** argv)
     int i = 0;
     bool isRotate = false;
     bool isSpeedUp = false;
-    int nextRotate = 6;
-    int nextSpeedUp = 7;
+    int nextRotate = 12;
+    int nextSpeedUp = 14;
   	while (ros::ok()) {
 		    // do stuff
         if (isRotate)
@@ -56,13 +56,13 @@ int main(int argc, char** argv)
           msg.right = -4.0;
           msg.left = 4.0;
           isRotate = true;
-          nextRotate = nextRotate + 6;
+          nextRotate = nextRotate + 12;
         }
 
         if (i == nextSpeedUp)
         {
           isSpeedUp = true;
-          nextSpeedUp = nextSpeedUp + 14;
+          nextSpeedUp = nextSpeedUp + 28;
         }
 
         i++;
