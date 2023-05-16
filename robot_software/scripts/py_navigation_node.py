@@ -13,7 +13,7 @@ P_hat=np.array([[100, 0, 0, 0, 0, 0], [0, 100, 0, 0, 0, 0], [0, 0, 100, 0, 0, 0]
 F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
 pi=math.pi
 X_hat=np.array([[0], [0], [0], [0], [0], [0]])
-W=np.array([[1e-6], [1e-6], [1e-7], [1e-8], [1e-8], [1e-5]])
+W=np.array([[1e-6], [1e-6], [1e-7], [1e-8], [1e-8], [1e-7]])
 psi=0
 psi_dot=0
 I=np.eye(6)
@@ -41,6 +41,9 @@ class SubscribeAndPublish:
         #print(f"x: {x}")
         p = np.matmul(np.matmul(f, p), f.T) + q
         #print(f"Predict timespamp: {int(rospy.get_time() * 1000)}")
+        # Limit heading angle to [-pi, pi] interval
+        # if abs(x[2]) > math.pi:
+        #     x[2] = x[2] - math.copysign(2*pi, x[2])
         return x, p
     
     def kalman_filter_update(x, p, z, h, v, i):
@@ -116,7 +119,7 @@ class SubscribeAndPublish:
             # Z_odom=np.array([[ velocity * math.cos(X_hat[2][0])], [velocity * math.sin(X_hat[2][0])], [rate]])
             # H_odom=np.array([[0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
             # V_odom=np.array([5e-1, 5e-1, 5e-2])
-            #[X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_odom, H_odom, V_odom, I)            
+            # [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_odom, H_odom, V_odom, I)            
 
             u = np.array([[0], [0], [0], [velocity * math.cos(X_hat[2][0])], [velocity * math.sin(X_hat[2][0])], [rate]])
             # predict
@@ -130,7 +133,7 @@ class SubscribeAndPublish:
         # update
         if gps1lat!= 0 or gps2lon != 0:
             #rospy.logerr("--- GPS ---")
-            d=0.5
+            d=0.6
             if gps_zero1[0] == 0:
                 gps_zero1 = [gps1lat, gps1lon]
             if gps_zero2[0] == 0:
@@ -144,16 +147,20 @@ class SubscribeAndPublish:
             
             
             E1_dot = gps1ve
-            E2_dot = gps2ve - (d * X_hat[5][0] * math.sin(X_hat[2][0]) + d * math.cos(X_hat[2][0]))
+            E2_dot = gps2ve #- (d * X_hat[5][0] * math.sin(X_hat[2][0]) + d * math.cos(X_hat[2][0]))
             N1_dot = gps1vn
-            N2_dot = gps2vn - (d * X_hat[5][0] * math.cos(X_hat[2][0]) - d * math.sin(X_hat[2][0]))
+            N2_dot = gps2vn #- (d * X_hat[5][0] * math.cos(X_hat[2][0]) - d * math.sin(X_hat[2][0]))
             psi_gnss1=math.atan2((E1_dot),(N1_dot))
             psi_gnss2=math.atan2((E2_dot),(N2_dot))
-            H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],[0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0]])
-            Z_GNSS=np.array([[E1], [E2], [N1], [N2], [psi_gnss1], [N1_dot], [N2_dot], [E1_dot], [E2_dot]])
-            V_GNSS=np.array([4e-7, 4e-2, 4e-7, 4e-2, 8e-0, 5e-0, 8e-0, 5e-0, 8e-0])
-            #self.display_navigation_solution(N1, E1, X_hat[2][0]);
-            # print(f"GPS 1 pos: {N1} {E1}, vel: {N1_dot} {E1_dot}")
+            psi_gnss=math.atan2((E1 - E2),(N1 - N2))
+            # H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+            # Z_GNSS=np.array([[E1], [E2], [N1], [N2], [psi_gnss1], [N1_dot], [N2_dot], [E1_dot], [E2_dot]])
+            # V_GNSS=np.array([4e-8, 4e-2, 4e-8, 4e-2, 8e-0, 5e-0, 8e-0, 5e-0, 8e-0])
+            H_GNSS=np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]])
+            Z_GNSS=np.array([[N1], [E1]])
+            V_GNSS=np.array([4e-4, 4e-4])
+            #self.display_navigation_solution(N2, E2, psi_gnss);
+            # print(f"GPS 1 pos: {N1} {E1}, vel: {N1_dot} {E1_dot}")X_hat[2][0]
             # print(f"GPS 2 pos: {N2} {E2}, vel: {N2_dot} {E2_dot}")
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
       
