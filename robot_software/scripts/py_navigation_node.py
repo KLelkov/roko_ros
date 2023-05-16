@@ -98,7 +98,7 @@ class SubscribeAndPublish:
             # update
             Z_INS=np.array([[gyroZ]])
             H_INS=np.array([[0, 0, 0, 0, 0, 1]])
-            V_INS=np.array([[7e-1]])  # 7e-5 = СКО дрейфа гироскопа
+            V_INS=np.array([[7e-5]])  # 7e-5 = СКО дрейфа гироскопа
             [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_INS, H_INS, V_INS, I)
 
         # ODO (10 Hz)
