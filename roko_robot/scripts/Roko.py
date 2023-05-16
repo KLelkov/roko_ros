@@ -126,7 +126,7 @@ class Roko:
         self._Time = []
 
         self._gyro_offset = random.gauss(0, 1 * math.pi / 180.0)
-        self._gps1_con = random.gauss(0, 1)
+        self._gps1_con = 0 #random.gauss(0, 1)
         self._gps2_con = random.gauss(0, 1)
 
 
@@ -185,8 +185,8 @@ class Roko:
 
         # Apply measurement noise
         odo_noise = 0.1 # rad/sec
-        #readings[0] += random.gauss(0, odo_noise)
-        #readings[1] += random.gauss(0, odo_noise)
+        readings[0] += random.gauss(0, odo_noise)
+        readings[1] += random.gauss(0, odo_noise)
 
         return readings
 
@@ -224,8 +224,8 @@ class Roko:
 
         # Apply measurement noise
         pos_mu = 0.01
-        pos_noise = 0.7
-        vel_noise = 0.2
+        pos_noise = 0.02 #0.7
+        vel_noise = 0.02
         gps1_dseed = - pos_mu * self._gps1_seed + math.sqrt(2 * pos_noise ** 2 * pos_mu) * (random.random() - 0.5);
         
         self._gps1_seed += gps1_dseed * 0.2;
@@ -255,7 +255,7 @@ class Roko:
 
         # Apply measurement noise
         pos_mu = 0.03
-        pos_noise = 0.7
+        pos_noise = 0.3 #0.7
         vel_noise = 0.2
         gps2_dseed = - pos_mu * self._gps2_seed + math.sqrt(2 * pos_noise ** 2 * pos_mu) * (random.random() - 0.5);
         self._gps2_seed +=  + gps2_dseed * 0.2;

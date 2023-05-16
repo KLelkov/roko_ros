@@ -13,7 +13,7 @@ P_hat=np.array([[100, 0, 0, 0, 0, 0], [0, 100, 0, 0, 0, 0], [0, 0, 100, 0, 0, 0]
 F_mat=np.array([[1, 0, 0, dt, 0, 0], [0, 1, 0, 0, dt, 0], [0, 0, 1, 0, 0, dt], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 1]])
 pi=math.pi
 X_hat=np.array([[0], [0], [0], [0], [0], [0]])
-W=np.array([[1e-7], [1e-7], [1e-7], [1e-8], [1e-8], [1e-5]])
+W=np.array([[1e-6], [1e-6], [1e-7], [1e-8], [1e-8], [1e-5]])
 psi=0
 psi_dot=0
 I=np.eye(6)
@@ -38,7 +38,7 @@ class SubscribeAndPublish:
         q = np.diag(w)  # матрица шумов системы
         #print(H)
         x = np.matmul(f, x) + u + w
-        print(f"x: {x}")
+        #print(f"x: {x}")
         p = np.matmul(np.matmul(f, p), f.T) + q
         #print(f"Predict timespamp: {int(rospy.get_time() * 1000)}")
         return x, p
@@ -129,7 +129,7 @@ class SubscribeAndPublish:
         # условие
         # update
         if gps1lat!= 0 or gps2lon != 0:
-            # rospy.logerr("--- GPS ---")
+            #rospy.logerr("--- GPS ---")
             d=0.5
             if gps_zero1[0] == 0:
                 gps_zero1 = [gps1lat, gps1lon]
@@ -149,12 +149,13 @@ class SubscribeAndPublish:
             N2_dot = gps2vn - (d * X_hat[5][0] * math.cos(X_hat[2][0]) - d * math.sin(X_hat[2][0]))
             psi_gnss1=math.atan2((E1_dot),(N1_dot))
             psi_gnss2=math.atan2((E2_dot),(N2_dot))
-            H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0],[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]])
+            H_GNSS=np.array([[0, 1, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0],[0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0]])
             Z_GNSS=np.array([[E1], [E2], [N1], [N2], [psi_gnss1], [N1_dot], [N2_dot], [E1_dot], [E2_dot]])
-            V_GNSS=np.array([4e-0, 4e-0, 4e-0, 4e-0, 8e-0, 5e-0, 8e-0, 5e-0, 8e-0])
+            V_GNSS=np.array([4e-7, 4e-2, 4e-7, 4e-2, 8e-0, 5e-0, 8e-0, 5e-0, 8e-0])
+            #self.display_navigation_solution(N1, E1, X_hat[2][0]);
             # print(f"GPS 1 pos: {N1} {E1}, vel: {N1_dot} {E1_dot}")
             # print(f"GPS 2 pos: {N2} {E2}, vel: {N2_dot} {E2_dot}")
-            #[X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
+            [X_hat, P_hat] = SubscribeAndPublish.kalman_filter_update(X_hat, P_hat, Z_GNSS, H_GNSS, V_GNSS, I)
       
 
 
