@@ -3,19 +3,21 @@
 <launch>
 
 <!-- CONTROL ALGO -->
-  <node pkg="robot_software" type="py_control_node.py" name="control_algo"/>
+  <node pkg="robot_software" type="py_control_node.py" name="control_algo" />
 
 <!-- BRIDGE TO THE REAL ROBOT -->
   <node pkg="robot_software" type="control_bridge.py" name="control_robot"/>
+  <node pkg="robot_software" type="sensors_bridge.py" name="sensors_robot"/>
+
 
 <!-- ROBOT WHEELS AND IMU -->
   <node name="locomotion_com" pkg="locomotion_com" type="3_wheeled_com"/>
 <!-- ROBOT NAVIGATION -->
   <node name="navigation" pkg="navigation_node" type="improved_navigation">
-    <param name="heading" value="155"/>
+    <param name="heading" value="-25"/>
   </node>
 <!-- ROBOT GPS -->
-  <include file="$(find ublox_gps)/launch/ublox_device.launch" />
+  <include file="$(find ublox_gps)/launch/ublox_zed-f9p.launch" />
 <!-- ROBOT GPS 2 -->
   <!--<node name="gps_node" pkg="gps_roko" type="gps_node.py" />-->
 

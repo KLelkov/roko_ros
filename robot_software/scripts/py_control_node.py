@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import rospy
 import math
@@ -9,7 +9,7 @@ from roko_robot.msg import navigation
 
 class SubscribeAndPublish:
 
-    coordinates = [[0,0],[8,0],[16,8],[16,16],[8,24],[0,24],[-8,16],[-8,8],[0,0]] # [x,y]
+    coordinates = [[0,0],[4,0],[8,4],[8,8],[4,12],[0,12],[-4,8],[-4,4],[0,0]] # [x,y]
     #coordinates = [[1,1],[16,0],[16,16],[0,16],[1,1]] # [x,y]
     indexOfCoor = 1
     nextCoordinate = coordinates[indexOfCoor]
@@ -44,14 +44,14 @@ class SubscribeAndPublish:
         # ----------
         # Kp = 2
         # Ki = 0.00001
-        Kp = 2
-        Ki = 0.00008
+        Kp = 3.5
+        Ki = 0.00012
         
         Kd = 1000
 
 
         Int = SubscribeAndPublish.prevInt +  DIST * dt
-        if (DIST < 0.25):
+        if (DIST < 0.45):
             SubscribeAndPublish.prevInt = 0
         else:
             SubscribeAndPublish.prevInt = Int
@@ -68,7 +68,7 @@ class SubscribeAndPublish:
         return V
 
     def PID_FI (self,rate):
-        maxRate = 2.0
+        maxRate = 4.0
         dt = 10
         # Kp = 1.5
         # Ki = 0.00004
@@ -84,7 +84,7 @@ class SubscribeAndPublish:
         # rate = bound(-maxRate, maxRate, 2.3 * SubscribeAndPublish.crossTrackError + 0.9 * diffCTE)
 
         Int = SubscribeAndPublish.prevIntFI +  rate * dt
-        if (rate < 0.03):
+        if (rate < 0.02):
             SubscribeAndPublish.prevIntFI = 0
         else:
             SubscribeAndPublish.prevIntFI = Int
@@ -94,10 +94,10 @@ class SubscribeAndPublish:
         fi = (Kp*rate + Ki * Int + Kd*Dif)
         #fi = (Kp*rate + Ki * Int + Kd*Dif + 6*diffCTE)
 
-        if (fi > 2):
-            fi = 2
+        if (fi > 3):
+            fi = 3
 
-        rospy.loginfo("fi{:.2f}".format(fi))
+        #rospy.loginfo("fi{:.2f}".format(fi))
         return fi
 
 
@@ -120,8 +120,10 @@ class SubscribeAndPublish:
 
         
 
-        if ( x < nextCoordinate[0] + 0.2 and x > nextCoordinate[0] - 0.2 and y < nextCoordinate[1] + 0.2 and y > nextCoordinate[1] - 0.2):
+        if ( x < nextCoordinate[0] + 0.4 and x > nextCoordinate[0] - 0.4 and y < nextCoordinate[1] + 0.4 and y > nextCoordinate[1] - 0.4):
             SubscribeAndPublish.prevCoordinate = nextCoordinate
+            print('reached waypoint.Next:')
+            
 
             SubscribeAndPublish.indexOfCoor += 1
 
@@ -137,7 +139,8 @@ class SubscribeAndPublish:
 
         nextCoordinate = SubscribeAndPublish.nextCoordinate
         prevCoordinate = SubscribeAndPublish.prevCoordinate
-
+       # print(nextCoordinate[0])
+       # print(nextCoordinate[1])
 
         deltaX = (nextCoordinate[0] - x)
         deltaY = (nextCoordinate[1] - y)
@@ -162,6 +165,7 @@ class SubscribeAndPublish:
 
         if (deltaX != 0):
             newOmega = math.atan2(deltaY,deltaX)
+            print(newOmega)
 
             rate = newOmega - omega
             SubscribeAndPublish.prevFI = abs(rate)
@@ -170,13 +174,13 @@ class SubscribeAndPublish:
                 left_speed = V
                 right_speed = V
             else:
-                if newOmega - omega <= 0.1 :
+                if newOmega - omega <= 0 :
                     a = self.PID_FI(abs(rate))
-                    left_speed = -a
-                    right_speed = a
+                    #left_speed = a
+                    #right_speed = -a
 
-                    left_speed = -a + V
-                    right_speed = V
+                    left_speed = V
+                    right_speed = -a +V
 
 
                     #if (V <= 24 and V > 14):
@@ -184,15 +188,15 @@ class SubscribeAndPublish:
                         # right_speed = a
                 else:
                     a = self.PID_FI(abs(rate))
-                    # left_speed = a
-                    # right_speed = -a
+                    #left_speed = a
+                    #right_speed = -a
 
-                    right_speed = -a + V
-                    left_speed = V
+                    right_speed = V
+                    left_speed = -a +V
 
-                    if (V <= 24 and V > 14):
-                        right_speed = -a
-                        left_speed = a
+                    #if (V <= 24 and V > 14):
+                    #    right_speed = a
+                    #    left_speed = -a
                     
         else:
             left_speed = V
@@ -204,6 +208,10 @@ class SubscribeAndPublish:
 
 
     def publishControl(self, left_speed, right_speed):
+        if abs(left_speed) < 6:
+            left_speed = math.copysign(6, left_speed)
+        if abs(right_speed)  < 6:
+            right_speed  = math.copysign(6, right_speed) 
         msg = control()
         msg.timestamp = int(rospy.get_time() * 1000)
         msg.left = left_speed  # rotation speed of the left wheel

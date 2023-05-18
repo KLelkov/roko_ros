@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 import rospy
 from math import sqrt, pi, copysign
 from rdk_msgs.msg import control as cont
@@ -34,7 +34,7 @@ class SubscribeAndPublish:
         nmsg.Velocity = 0
         nmsg.Rate = 0
         nmsg.Omega = msg.heading
-        if self._lastTime != 0:
+        if self._lastTime != 0 and nmsg.timestamp != self._lastTime:
             nmsg.Velocity = sqrt((msg.X - self._lastCoords[0])**2 + (msg.Y - self._lastCoords[1])**2 ) / (nmsg.timestamp - self._lastTime) / 1000
             nmsg.Rate = self.pi2pi(msg.heading - self._lastCoords[2]) / (nmsg.timestamp - self._lastTime) / 1000
         self._lastCoords = [msg.X, msg.Y, msg.heading]
@@ -48,7 +48,7 @@ class SubscribeAndPublish:
         cmsg = cont()
         cmsg.ups = (msg.left + msg.right) * l / 4 / pi
         cmsg.dth = (msg.left - msg.right) * l / 4 / pi / b
-        cmsg.timestamp = round(rospy.get_time() * 1000) # assumed to be milliseconds
+        #cmsg.timestamp = round(rospy.get_time() * 1000) # assumed to be milliseconds
         cmsg.mode = 0 # automatic control
         self.ctrlPub.publish(cmsg)
     # End of control_callback()
