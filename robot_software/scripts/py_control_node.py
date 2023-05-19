@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 import math
@@ -9,7 +9,9 @@ from roko_robot.msg import navigation
 
 class SubscribeAndPublish:
 
-    coordinates = [[0,0],[4,0],[8,4],[8,8],[4,12],[0,12],[-4,8],[-4,4],[0,0]] # [x,y]
+    #coordinates = [[0,0],[4,0],[8,4],[8,8],[4,12],[0,12],[-4,8],[-4,4],[0,0]] # [x,y]
+    coordinates = [[0,0],[4,0],[8,4],[8,8],[4,12],[0,13],[0,17],[4,21],[8,21]] # [x,y]
+    # coordinates = [[0,0],[8,0],[16,8],[16,16],[8,24],[0,24],[0,32],[8,40],[16,40]] # [x,y]
     #coordinates = [[1,1],[16,0],[16,16],[0,16],[1,1]] # [x,y]
     indexOfCoor = 1
     nextCoordinate = coordinates[indexOfCoor]
@@ -44,14 +46,14 @@ class SubscribeAndPublish:
         # ----------
         # Kp = 2
         # Ki = 0.00001
-        Kp = 3.5
-        Ki = 0.00012
+        Kp = 4
+        Ki = 0.00008
         
         Kd = 1000
 
 
         Int = SubscribeAndPublish.prevInt +  DIST * dt
-        if (DIST < 0.45):
+        if (DIST < 0.65):
             SubscribeAndPublish.prevInt = 0
         else:
             SubscribeAndPublish.prevInt = Int
@@ -68,7 +70,7 @@ class SubscribeAndPublish:
         return V
 
     def PID_FI (self,rate):
-        maxRate = 4.0
+        maxRate = 2.0
         dt = 10
         # Kp = 1.5
         # Ki = 0.00004
@@ -84,7 +86,7 @@ class SubscribeAndPublish:
         # rate = bound(-maxRate, maxRate, 2.3 * SubscribeAndPublish.crossTrackError + 0.9 * diffCTE)
 
         Int = SubscribeAndPublish.prevIntFI +  rate * dt
-        if (rate < 0.02):
+        if (rate < 0.03):
             SubscribeAndPublish.prevIntFI = 0
         else:
             SubscribeAndPublish.prevIntFI = Int
@@ -94,10 +96,10 @@ class SubscribeAndPublish:
         fi = (Kp*rate + Ki * Int + Kd*Dif)
         #fi = (Kp*rate + Ki * Int + Kd*Dif + 6*diffCTE)
 
-        if (fi > 3):
-            fi = 3
+        if (fi > 2):
+            fi = 2
 
-        #rospy.loginfo("fi{:.2f}".format(fi))
+        rospy.loginfo("fi{:.2f}".format(fi))
         return fi
 
 
@@ -109,9 +111,14 @@ class SubscribeAndPublish:
         y = msg.Y
         omega = msg.Omega
 
+
+        # rospy.loginfo("omega {:.2f}".format(omega))
         if omega > 2*np.pi :
             K = int(omega / 2*np.pi)
             omega = omega - K * 2*np.pi
+
+
+
 
 
         coordinates = SubscribeAndPublish.coordinates
@@ -120,10 +127,8 @@ class SubscribeAndPublish:
 
         
 
-        if ( x < nextCoordinate[0] + 0.4 and x > nextCoordinate[0] - 0.4 and y < nextCoordinate[1] + 0.4 and y > nextCoordinate[1] - 0.4):
+        if ( x < nextCoordinate[0] + 0.6 and x > nextCoordinate[0] - 0.6 and y < nextCoordinate[1] + 0.6 and y > nextCoordinate[1] - 0.6):
             SubscribeAndPublish.prevCoordinate = nextCoordinate
-            print('reached waypoint.Next:')
-            
 
             SubscribeAndPublish.indexOfCoor += 1
 
@@ -139,8 +144,7 @@ class SubscribeAndPublish:
 
         nextCoordinate = SubscribeAndPublish.nextCoordinate
         prevCoordinate = SubscribeAndPublish.prevCoordinate
-       # print(nextCoordinate[0])
-       # print(nextCoordinate[1])
+
 
         deltaX = (nextCoordinate[0] - x)
         deltaY = (nextCoordinate[1] - y)
@@ -164,39 +168,69 @@ class SubscribeAndPublish:
 
 
         if (deltaX != 0):
+            rospy.loginfo("deltaY {:.2f} deltaX{:.2f}".format(deltaY,deltaX))
             newOmega = math.atan2(deltaY,deltaX)
-            print(newOmega)
+
+            LEFT = False
+
+            # if (newOmega < -np.pi + 0.1 and newOmega > -np.pi -0.2):
+            #     newOmega = np.pi
+
+            # if (newOmega < -2 and newOmega > -2.8):
+            #     newOmega = abs(newOmega) + np.pi/2
+
+            rospy.loginfo("newOmega {:.2f} omega{:.2f} LEFT {:.2f}".format(newOmega,omega,LEFT))
 
             rate = newOmega - omega
+
+            # if (rate < 0 and newOmega - omega <= -3.14):
+            #     rate = newOmega + omega
+
+            # if (rate < 0 and rate < -np.pi):
+            #     rate = newOmega + omega
+            # elif (rate > 0 and rate >=np.pi):
+            #     rate = rate  np.pi
+
+            #rospy.loginfo("rate {:.2f}".format(rate))
+
             SubscribeAndPublish.prevFI = abs(rate)
 
-            if ( abs(omega - newOmega) < 0.15):
+            if ( abs(rate) < 0.15):
                 left_speed = V
                 right_speed = V
             else:
-                if newOmega - omega <= 0 :
+                if ( rate) <= 0 :
                     a = self.PID_FI(abs(rate))
-                    #left_speed = a
-                    #right_speed = -a
+                    # left_speed = -a
+                    # right_speed = a
+
+                    # left_speed = -a + V
+                    # right_speed = V
 
                     left_speed = V
                     right_speed = -a +V
 
 
-                    #if (V <= 24 and V > 14):
-                        # left_speed = -a
-                        # right_speed = a
-                else:
+
+
+                    # if (V <= 24 and V > 8):
+                    #     left_speed = -a
+                    #     right_speed = a
+                    
+                else :
                     a = self.PID_FI(abs(rate))
-                    #left_speed = a
-                    #right_speed = -a
+                    # left_speed = a
+                    # right_speed = -a
+
+                    # right_speed = -a + V
+                    # left_speed = V
 
                     right_speed = V
                     left_speed = -a +V
 
-                    #if (V <= 24 and V > 14):
-                    #    right_speed = a
-                    #    left_speed = -a
+                    # if (V <= 24 and V > 8):
+                    #     right_speed = -a
+                    #     left_speed = a
                     
         else:
             left_speed = V
@@ -211,7 +245,7 @@ class SubscribeAndPublish:
         if abs(left_speed) < 6:
             left_speed = math.copysign(6, left_speed)
         if abs(right_speed)  < 6:
-            right_speed  = math.copysign(6, right_speed) 
+            right_speed  = math.copysign(6, right_speed)
         msg = control()
         msg.timestamp = int(rospy.get_time() * 1000)
         msg.left = left_speed  # rotation speed of the left wheel
