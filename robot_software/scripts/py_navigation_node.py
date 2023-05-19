@@ -158,7 +158,7 @@ class SubscribeAndPublish:
             # V_GNSS=np.array([4e-8, 4e-2, 4e-8, 4e-2, 8e-0, 5e-0, 8e-0, 5e-0, 8e-0])
             H_GNSS=np.array([[1, 0, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0]])
             Z_GNSS=np.array([[N1], [E1]])
-            V_GNSS=np.array([4e-4, 4e-4])
+            V_GNSS=np.array([4e-3, 4e-3])
             #self.display_navigation_solution(N2, E2, psi_gnss);
             # print(f"GPS 1 pos: {N1} {E1}, vel: {N1_dot} {E1_dot}")X_hat[2][0]
             # print(f"GPS 2 pos: {N2} {E2}, vel: {N2_dot} {E2_dot}")
