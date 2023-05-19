@@ -13,6 +13,7 @@ class SubscribeAndPublish:
         self._gpsFlags = [0, 0, 0, 0]
         self._gpsData = [[0, 0], [0, 0], [0, 0], [0, 0]]
 
+        self._sensorPub = rospy.Publisher('roko/sensor_data', sensors, queue_size=1)
         #self._odoSub = rospy.Subscriber('motors_data', motors, self.odo_callback)
         self._imuSub = rospy.Subscriber('locomotion_data', locomotion, self.imu_callback)
         self._posSub = rospy.Subscriber('gps_node/fix', NavSatFix, self.pos_callback)
@@ -20,7 +21,7 @@ class SubscribeAndPublish:
         #self._pos2Sub = rospy.Subscriber('gps_node2/fix', NavSatFix, self.pos2_callback)
         #self._vel2Sub = rospy.Subscriber('gps_node2/fix_velocity', TwistWithCovarianceStamped, self.vel2_callback)
 
-        self._sensorPub = rospy.Publisher('roko/sensors_data', sensors, queue_size=5)
+        #self._sensorPub = rospy.Publisher('roko/sensors_data', sensors, queue_size=5)
         rospy.loginfo("[sensor_bridge] is ready!")
     # End of __init__()
 
