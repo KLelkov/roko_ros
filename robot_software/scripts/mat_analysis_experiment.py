@@ -23,10 +23,11 @@ class SubscribeAndPublish:
         print("output directory: {}".format(script_dir))
         self.f = open(script_dir + '/log.csv', 'w')
         self.writer = csv.writer(self.f)
-        self.writer.writerow(['time', 'Xt', 'Yt', 'Ht', 'Xn', 'Yn', 'Hn', 'Error', 'Rate', 'Velocity', 'Control_l', 'Control_r'])
+        self.writer.writerow(['time', 'Xt', 'Yt', 'Ht', 'Vt', 'Rt', 'Xn', 'Yn', 'Hn', 'Error', 'Rate', 'Velocity', 'Control_l', 'Control_r'])
 
-        self._trueSub = rospy.Subscriber('rviz/pose', PoseStamped, self.true_callback)
-        self._navSub = rospy.Subscriber('roko/navigation_data', navigation, self.navigation_callback)
+        #self._trueSub = rospy.Subscriber('rviz/pose', PoseStamped, self.true_callback)
+        self._navSub = rospy.Subscriber('roko/navigation_data_test', navigation, self.navigation_callback)
+        self._trueSub = rospy.Subscriber('roko/navigation_data_true', navigation, self.true_callback)
         self._ctrlSub = rospy.Subscriber('roko/control_data', control, self.control_callback)
 
 
@@ -37,6 +38,8 @@ class SubscribeAndPublish:
         self.ctrl_right = [0]
         self.nav_vel = []
         self.nav_rate = []
+        self.true_vel = []
+        self.true_rate = []
         self.x_nav = []
         self.y_nav = []
         self.x_true = []
@@ -117,17 +120,21 @@ class SubscribeAndPublish:
         #self.writer.writerow([self.time[-1], self.x_true[-1], self.y_true[-1], 0, self.x_nav[-1], self.y_nav[-1], self.heading_nav[-1], self.pos_error[-1]])
 
     def true_callback(self, msg):
-        self.y_true.append(msg.pose.position.y)
-        self.x_true.append(msg.pose.position.x)
-        self.heading_true.append(math.asin(msg.pose.orientation.z) * 2)
-        self.last_x = msg.pose.position.x
-        self.last_y = msg.pose.position.y
+        self.y_true.append(msg.Y)
+        self.x_true.append(msg.X)
+        self.heading_true.append(msg.Omega)
+        self.true_rate.append(msg.Rate)
+        self.true_vel.append(msg.Velocity)
+        self.last_x = msg.X
+        self.last_y = msg.Y
+
 
     def save_to_file(self):
 
         if len(self.time) > 10:
             print(f"Saving data at time {self.time[-1]}")
-            self.writer.writerow([self.time[-1], self.x_true[-1], self.y_true[-1], self.heading_true[-1], self.x_nav[-1], self.y_nav[-1], self.heading_nav[-1], self.pos_error[-1],
+            self.writer.writerow([self.time[-1], self.x_true[-1], self.y_true[-1], self.heading_true[-1], self.true_vel[-1], self.true_rate[-1],
+                                  self.x_nav[-1], self.y_nav[-1], self.heading_nav[-1], self.pos_error[-1],
                                   self.nav_rate[-1], self.nav_vel[-1], self.ctrl_left[-1], self.ctrl_right[-1]])
 
 
@@ -135,7 +142,7 @@ def main():
     rospy.init_node('analyzer_node')
     SAP = SubscribeAndPublish()
     #rospy.spin()
-    r = rospy.Rate(10) # 100 Hz
+    r = rospy.Rate(20) # 100 Hz
     while not rospy.is_shutdown():
         SAP.save_to_file()
         d = 0

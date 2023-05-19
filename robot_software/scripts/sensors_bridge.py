@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import rospy
 from rdk_msgs.msg import locomotion
 #from rdk_msgs.msg import motors
@@ -13,7 +13,7 @@ class SubscribeAndPublish:
         self._gpsFlags = [0, 0, 0, 0]
         self._gpsData = [[0, 0], [0, 0], [0, 0], [0, 0]]
 
-        self._sensorPub = rospy.Publisher('roko/sensor_data', sensors, queue_size=1)
+        self._sensorPub = rospy.Publisher('roko/sensors_data', sensors, queue_size=1)
         #self._odoSub = rospy.Subscriber('motors_data', motors, self.odo_callback)
         self._imuSub = rospy.Subscriber('locomotion_data', locomotion, self.imu_callback)
         self._posSub = rospy.Subscriber('gps_node/fix', NavSatFix, self.pos_callback)
@@ -28,14 +28,16 @@ class SubscribeAndPublish:
 
     def odo_callback(self, msg):
         odo_left = 0
-        if abs(msg.odo[0] > 4):
-            odo_left = - msg.odo[0] / 14 * 2 * pi / 60
+        #print(msg.odo)
+        if abs(msg.odo[0]) > 4:
+            odo_left = -msg.odo[0] / 14 * 2 * pi / 60
         odo_right = 0
-        if abs(msg.odo[1] > 4):
-            odo_right = - msg.odo[1] / 14 * 2 * pi / 60
+        if abs(msg.odo[1]) > 4:
+            odo_right = msg.odo[1] / 14 * 2 * pi / 60
         
         omsg = sensors()
         omsg.timestamp = int(rospy.get_time() * 1000)
+        #print(f'odo {odo_left} {odo_right}')
         omsg.odom[0] = odo_left # rotation speed of the left wheel
         omsg.odom[1] = odo_right # rotation speed of the right wheel
 

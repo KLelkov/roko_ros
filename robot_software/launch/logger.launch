@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<launch>
+
+<!-- NAVIGATION ALGO -->
+  <node pkg="robot_software" type="py_navigation_node.py" name="control_algo" />
+
+<!-- BRIDGE NODES -->
+<!-- convert onboard navigation to navigation_data_true -->
+  <node pkg="robot_software" type="control_bridge.py" name="control_robot"/>
+  <!-- convert onboard sensors to /sensors_data correctly-->
+  <node pkg="robot_software" type="sensors_bridge.py" name="sensors_robot"/>
+
+  <node pkg="robot_software" type="mat_analysis_experiment.py" name="logger" output="screen">
+    <param name="screen" value="False"/>
+  </node>
+
+
+
+</launch>
