@@ -12,7 +12,7 @@
   <node pkg="robot_software" type="sensors_bridge.py" name="sensors_robot"/>
 
   <node pkg="robot_software" type="mat_analysis_experiment.py" name="logger" output="screen">
-    <param name="screen" value="False"/>
+    <param name="screen" value="True"/>
   </node>
 
 

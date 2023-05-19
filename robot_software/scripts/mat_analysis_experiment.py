@@ -102,14 +102,14 @@ class SubscribeAndPublish:
 
 
     def navigation_callback(self, msg):
-        self.y_nav.append(msg.Y)
+        self.y_nav.append(-msg.Y)
         self.x_nav.append(msg.X)
-        self.heading_nav.append(msg.Omega)
+        self.heading_nav.append(-msg.Omega)
         self.time.append(rospy.get_time() - self.time0)
         err = math.sqrt((msg.X - self.last_x)**2 + (msg.Y - self.last_y)**2)
         self.pos_error.append(err)
         self.nav_vel.append(msg.Velocity)
-        self.nav_rate.append(msg.Rate)
+        self.nav_rate.append(-msg.Rate)
         #print(self.pos_error)
         #self.writer.writerow([self.time[-1], self.x_true[-1], self.y_true[-1], 0, self.x_nav[-1], self.y_nav[-1], self.heading_nav[-1], self.pos_error[-1]])
 
